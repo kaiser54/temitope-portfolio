@@ -15,10 +15,10 @@
  * Absolute URLs (canonical, og:url, og:image, sitemap.xml, robots.txt) use SITE_URL, which
  * defaults to the production domain. Override it for another host (e.g. a preview).
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { contact, notes, profile } from '../src/content.ts'
+import { companies, contact, notes, profile } from '../src/content.ts'
 import { ALL_ROUTES, NOT_FOUND, pathFor, routeMeta } from '../src/seo.ts'
 // @ts-expect-error built by `vite build --ssr` just before this script runs
 import { render } from '../dist-server/entry-server.js'
@@ -37,9 +37,11 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
   const url = `${site}${canonicalPath}`
   const note = route.note ? notes.find((n) => n.slug === route.note) : undefined
 
-  // Share image (public/og.png, 1200×630). Link previews need an absolute URL.
-  const image = `${site}/og.png`
-  const jsonLd = route.home ? personLd() : note ? articleLd(note, title, description, url) : null
+  // Share image (1200×630): a note's own (public/og/notes/<slug>.png, made by scripts/og-notes.ts)
+  // or the site-wide public/og.png. Link previews need an absolute URL.
+  const noteImage = note && `/og/notes/${note.slug}.png`
+  const image = `${site}${noteImage && existsSync(join(dist, noteImage)) ? noteImage : '/og.png'}`
+  const jsonLd = route.home ? personLd() : note ? articleLd(note, title, description, url, image) : null
   const tags = [
     `<meta property="og:type" content="${note ? 'article' : 'website'}" />`,
     `<meta property="og:site_name" content="Temitope Agboola" />`,
@@ -48,7 +50,7 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
     `<meta property="og:image" content="${image}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="Temitope Agboola, Frontend &amp; Product Engineer" />`,
+    `<meta property="og:image:alt" content="${note ? esc(note.title) : 'Temitope Agboola, Frontend &amp; Product Engineer'}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:creator" content="@kaiser_major" />`,
@@ -96,14 +98,19 @@ function personLd() {
         image: `${site}/avatar.jpg`,
         address: { '@type': 'PostalAddress', addressLocality: 'Lagos', addressCountry: 'NG' },
         sameAs,
-        worksFor: { '@type': 'Organization', name: 'Quality', url: 'https://usequality.app' },
+        worksFor: (['quality', 'passpoint'] as const).map((k) => ({
+          '@type': 'Organization',
+          name: companies[k].name,
+          url: companies[k].href,
+        })),
+        knowsAbout: ['Frontend engineering', 'React', 'TypeScript', 'Interface design', 'Fintech', 'Payments', 'E-commerce'],
       },
       { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: profile.name, publisher: { '@id': `${site}/#person` } },
     ],
   }
 }
 
-function articleLd(note: (typeof notes)[number], title: string, description: string, url: string) {
+function articleLd(note: (typeof notes)[number], title: string, description: string, url: string, image: string) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BlogPosting',
@@ -112,7 +119,7 @@ function articleLd(note: (typeof notes)[number], title: string, description: str
     description,
     url,
     mainEntityOfPage: url,
-    image: `${site}/og.png`,
+    image,
     ...(note.date && { datePublished: note.date, dateModified: note.date }),
     author: { '@type': 'Person', name: profile.name, url: `${site}/` },
   }
