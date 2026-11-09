@@ -20,6 +20,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { companies, contact, notes, profile } from '../src/content.ts'
 import { ALL_ROUTES, NOT_FOUND, pathFor, routeMeta } from '../src/seo.ts'
+import { ogPathFor } from '../src/og-cards.ts'
 // @ts-expect-error built by `vite build --ssr` just before this script runs
 import { render } from '../dist-server/entry-server.js'
 
@@ -37,10 +38,10 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
   const url = `${site}${canonicalPath}`
   const note = route.note ? notes.find((n) => n.slug === route.note) : undefined
 
-  // Share image (1200×630): a note's own (public/og/notes/<slug>.png, made by scripts/og-notes.ts)
-  // or the site-wide public/og.png. Link previews need an absolute URL.
-  const noteImage = note && `/og/notes/${note.slug}.png`
-  const image = `${site}${noteImage && existsSync(join(dist, noteImage)) ? noteImage : '/og.png'}`
+  // Share image (1200×630): the page's own (public/og/pages|notes/…, made by scripts/og-images.ts), or the
+  // homepage's public/og.png. Link previews need an absolute URL.
+  const own = route.home || route.notFound ? null : ogPathFor(path)
+  const image = `${site}${own && existsSync(join(dist, own)) ? own : '/og.png'}`
   const jsonLd = route.home ? personLd() : note ? articleLd(note, title, description, url, image) : null
   const tags = [
     `<meta property="og:type" content="${note ? 'article' : 'website'}" />`,
@@ -50,7 +51,7 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
     `<meta property="og:image" content="${image}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="${note ? esc(note.title) : 'Temitope Agboola, Frontend &amp; Product Engineer'}" />`,
+    `<meta property="og:image:alt" content="${image.endsWith('/og.png') ? 'Temitope Agboola, Frontend &amp; Product Engineer' : esc(title)}" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:creator" content="@kaiser_major" />`,

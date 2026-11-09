@@ -3,6 +3,8 @@
   Share-image (Open Graph) variants, previewed the way messengers show them.
   Dev only: open http://localhost:5173/og-preview.html while `pnpm dev` runs (not part of the build).
   Render one variant at full size with ?only=<id>&theme=light|dark  (used to export public/og.png).
+  Below the variants: every inner page's card, rendered live from src/og-cards.ts (the same HTML that
+  `pnpm og:images` exports to public/og/pages and public/og/notes). Edit the design there; this page updates.
 -->
 <html lang="en">
   <head>
@@ -141,6 +143,13 @@
       .vI .note b { display: block; font-size: 58px; font-weight: 500; color: var(--ink); }
       .vI .note p { margin-top: 18px; font-size: 48px; font-weight: 400; color: var(--ink-2); }
 
+      /* inner pages: live cards from src/og-cards.ts, each a 1200×630 document scaled into the mock */
+      #inner-pages { margin-top: 56px; }
+      .frame > iframe.og-live, .thumb > iframe.og-live {
+        position: absolute; left: 0; top: 0; width: 1200px; height: 630px; border: 0;
+        transform-origin: 0 0; pointer-events: none; background: #f9f9f9;
+      }
+
       /* full-size render mode (?only=…) */
       body.only { padding: 0; background: transparent; }
       body.only .og { position: fixed; left: 0; top: 0; }
@@ -159,6 +168,7 @@
       </div>
     </header>
     <main id="variants"></main>
+    <div id="inner-pages"></div>
 
     <script>
       const AVATAR = '/og-avatar.jpg'
@@ -248,6 +258,63 @@
         )
         addEventListener('resize', scaleInto)
         render()
+      }
+    </script>
+    <script type="module">
+      // Inner pages: the real cards (src/og-cards.ts), in the same messenger mock-ups as the variants above.
+      import { ogCardHtml, ogCards } from '/src/og-cards.ts'
+
+      const root = document.getElementById('inner-pages') // absent in ?only= mode
+      if (root) {
+        const HOST = 'temitopeagboola.com'
+        // Preview-only stress tests (never exported): how the layout copes with long titles.
+        const TEST_CARDS = [
+          { path: 'test · 2 lines', title: 'Designing a swipe gesture that feels heavy, physical and never sticks', byline: 'Temitope Agboola · Notes' },
+          { path: 'test · 3 lines', title: 'What I learned rebuilding a highlight-and-ask-AI popover from the Figma file, pixel by pixel, with Motion', byline: 'Temitope Agboola · Notes' },
+          { path: 'test · long word', title: 'Internationalisation-and-accessibility-first component architecture', byline: 'Temitope Agboola · Build logs' },
+        ]
+        const attr = (s) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+        const live = (card) =>
+          `<iframe class="og-live" scrolling="no" tabindex="-1" aria-hidden="true" srcdoc="${attr(ogCardHtml(card))}"></iframe>`
+        const mock = (card) => {
+          const title = `${card.title} — Temitope Agboola`
+          return `
+            <section class="variant">
+              <h2>${card.title} <span>${card.path}</span></h2>
+              <div class="row">
+                <div class="mock"><small>WhatsApp</small>
+                  <div class="wa"><div class="frame">${live(card)}</div>
+                  <div class="meta"><b>${title}</b><i>${HOST}</i></div></div></div>
+                <div class="mock"><small>iMessage</small>
+                  <div class="im"><div class="frame">${live(card)}</div>
+                  <div class="meta"><b>${title}</b><i>${HOST}</i></div></div></div>
+                <div class="mock"><small>X / Twitter</small>
+                  <div class="x"><div class="frame">${live(card)}</div><span class="tag">${HOST}</span></div></div>
+                <div class="mock"><small>Square thumbnail</small>
+                  <div class="thumb">${live(card)}</div></div>
+              </div>
+            </section>`
+        }
+        root.innerHTML = `
+          <header class="page"><div>
+            <h1>Inner pages</h1>
+            <p>One card per page, rendered live from <code>src/og-cards.ts</code>: the same HTML that
+              <code>pnpm og:images</code> exports. Change the design there and this updates.</p>
+          </div></header>` + [...ogCards, ...TEST_CARDS].map(mock).join('')
+
+        const fit = () => {
+          root.querySelectorAll('.frame').forEach((f) => {
+            f.querySelector('iframe').style.transform = `scale(${f.clientWidth / 1200})`
+          })
+          root.querySelectorAll('.thumb').forEach((t) => {
+            const s = 96 / 630 // square crop: fit height, centre horizontally
+            const el = t.querySelector('iframe')
+            el.style.transform = `scale(${s})`
+            el.style.left = `${(96 - 1200 * s) / 2}px`
+          })
+        }
+        fit()
+        addEventListener('resize', fit)
       }
     </script>
   </body>
