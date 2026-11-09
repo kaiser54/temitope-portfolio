@@ -2,7 +2,7 @@ import { SelectPrimitive as Select, Tabs } from '@repo/ui'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import { NOTE_TAGS, explorations, notes, projects, type NoteTag } from '../content'
-import { applyHead, navigate, useRoute } from '../router'
+import { navigate, useRoute } from '../router'
 import { pathFor, type NoteFilter, type Section } from '../seo'
 import { Explorations } from './Explorations'
 import { Notes } from './Notes'
@@ -33,7 +33,7 @@ export function SectionTabs({ index }: { index: number }) {
   const notesLabel = FILTERS.find((f) => f.value === filter)!.label
 
   // Real routes: / · /work · /notes · /notes/writing · /notes/build-logs · /explorations
-  useEffect(() => applyHead(route), [section, filter, route.home])
+  // (<head> is kept in sync by App)
 
   const selectSection = (value: SectionId) => {
     // Notes keeps the last-used filter only via its own path; switching tabs goes to the section root

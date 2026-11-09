@@ -1,5 +1,6 @@
 import { NOTE_TAGS, type Note, type NoteTag } from '../content'
 import type { NoteFilter } from './SectionTabs'
+import { navigate } from '../router'
 
 const tagLabel = (t: NoteTag) => NOTE_TAGS.find((x) => x.value === t)?.label ?? t
 
@@ -35,7 +36,19 @@ export function Notes({ filter, items: visible }: { filter: NoteFilter; items: N
               const row = 'note-row grid gap-1 py-2.5 sm:grid-cols-[4.5rem_1fr] sm:gap-0'
               return (
                 <li key={n.title}>
-                  {n.href ? (
+                  {n.slug ? (
+                    <a
+                      href={`/notes/${n.slug}`}
+                      className={`${row} note-link`}
+                      onClick={(e) => {
+                        if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
+                        e.preventDefault()
+                        navigate({ section: 'notes', filter: 'all', note: n.slug })
+                      }}
+                    >
+                      {body}
+                    </a>
+                  ) : n.href ? (
                     <a href={n.href} className={`${row} note-link`}>
                       {body}
                     </a>

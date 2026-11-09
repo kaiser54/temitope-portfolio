@@ -1,4 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from 'react'
+import { useEffect, useState } from 'react'
+import { RollingText } from './RollingText'
 
 type Theme = 'light' | 'dark' | 'system'
 
@@ -30,32 +31,8 @@ function applyTheme(theme: Theme) {
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('theme-switching')))
 }
 
-type WordItem = { id: number; theme: Theme; enter: boolean }
-
-/** One word, split into letters. Letters use CSS transitions so rapid clicks retarget instead of restarting. */
-function Word({ text, out, enter, ref }: { text: string; out: boolean; enter: boolean; ref?: Ref<HTMLSpanElement> }) {
-  return (
-    <span ref={ref} aria-hidden className="roll-word" data-out={out || undefined} data-enter={enter || undefined}>
-      {[...text].map((ch, i) => (
-        <span key={i} className="roll-letter" style={{ '--i': i } as CSSProperties}>
-          {ch}
-        </span>
-      ))}
-    </span>
-  )
-}
-
 export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(readTheme)
-  const [words, setWords] = useState<WordItem[]>(() => [{ id: 0, theme: readTheme(), enter: false }])
-  const currentId = useRef(0)
-  const current = useRef<HTMLSpanElement>(null)
-  const [width, setWidth] = useState<number>()
-
-  // Measure the incoming word so the container's width can ease to it.
-  useLayoutEffect(() => {
-    setWidth(current.current?.offsetWidth)
-  }, [theme])
 
   // Follow the OS while on "system".
   useEffect(() => {
@@ -80,27 +57,10 @@ export function ThemeToggle() {
         } catch {
           // theme still applies for this visit
         }
-        const id = ++currentId.current
         setTheme(next)
-        setWords((ws) => [...ws, { id, theme: next, enter: true }])
-        // Drop words that have finished leaving.
-        window.setTimeout(() => setWords((ws) => ws.filter((w) => w.id >= currentId.current)), 400)
       }}
     >
-      <span className="roll" style={{ width }}>
-        {words.map((w) => {
-          const isCurrent = w.id === currentId.current
-          return (
-            <Word
-              key={w.id}
-              ref={isCurrent ? current : undefined}
-              text={LABEL[w.theme]}
-              out={!isCurrent}
-              enter={w.enter}
-            />
-          )
-        })}
-      </span>
+      <RollingText text={LABEL[theme]} />
     </button>
   )
 }

@@ -3,12 +3,12 @@
  * and scripts/prerender.ts (writes a static HTML file per route at build time).
  * Imports use the .ts extension so Node can run this file directly.
  */
-import { NOTE_TAGS, explorations, profile, projects, type NoteTag } from './content.ts'
+import { NOTE_TAGS, explorations, notes, profile, projects, type NoteTag } from './content.ts'
 
 export type Section = 'work' | 'explorations' | 'notes'
 export type NoteFilter = 'all' | NoteTag
 /** `home` marks the bare homepage (/), which shows Work but has its own URL and metadata. */
-export type Route = { section: Section; filter: NoteFilter; home?: boolean }
+export type Route = { section: Section; filter: NoteFilter; home?: boolean; note?: string }
 
 export function parseRoute(pathname: string): Route | null {
   const path = pathname.replace(/\/+$/, '') || '/'
@@ -17,11 +17,15 @@ export function parseRoute(pathname: string): Route | null {
   if (path === '/explorations') return { section: 'explorations', filter: 'all' }
   if (path === '/notes') return { section: 'notes', filter: 'all' }
   const m = path.match(/^\/notes\/([^/]+)$/)
-  const tag = m && NOTE_TAGS.find((t) => t.slug === m[1])
-  return tag ? { section: 'notes', filter: tag.value } : null
+  if (!m) return null
+  const tag = NOTE_TAGS.find((t) => t.slug === m[1])
+  if (tag) return { section: 'notes', filter: tag.value }
+  const note = notes.find((n) => n.slug === m[1])
+  return note ? { section: 'notes', filter: 'all', note: note.slug } : null
 }
 
-export function pathFor({ section, filter, home }: Route): string {
+export function pathFor({ section, filter, home, note }: Route): string {
+  if (note) return `/notes/${note}`
   if (section === 'work') return home ? '/' : '/work'
   if (section === 'explorations') return '/explorations'
   if (filter === 'all') return '/notes'
@@ -34,10 +38,15 @@ export const ALL_ROUTES: Route[] = [
   { section: 'explorations', filter: 'all' },
   { section: 'notes', filter: 'all' },
   ...NOTE_TAGS.map((t) => ({ section: 'notes' as const, filter: t.value })),
+  ...notes.filter((n) => n.slug).map((n) => ({ section: 'notes' as const, filter: 'all' as const, note: n.slug })),
 ]
 
 export function routeMeta(route: Route): { title: string; description: string } {
   const name = profile.name
+  if (route.note) {
+    const n = notes.find((x) => x.slug === route.note)!
+    return { title: `${n.title} — ${name}`, description: n.summary ?? n.title }
+  }
   if (route.section === 'work' && !route.home) {
     const names = projects.map((p) => p.name)
     return {

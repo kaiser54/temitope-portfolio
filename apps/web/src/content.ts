@@ -175,6 +175,8 @@ export type NoteTag = (typeof NOTE_TAGS)[number]['value']
 
 export type Note = {
   title: string
+  /** URL slug: the note lives at /notes/<slug> once it has a page */
+  slug?: string
   /** One or more of NOTE_TAGS */
   tags: NoteTag[]
   /** ISO date (YYYY-MM-DD); omit while the note is still being written */
@@ -187,7 +189,9 @@ export type Note = {
 export const notes: Note[] = [
   {
     title: 'Rolling a theme switcher, letter by letter',
+    slug: 'theme-switcher',
     tags: ['build-log'],
+    date: '2026-11-09',
     summary: 'Why the text shook while the button resized, and pinning words to an edge to fix it.',
   },
 ]

@@ -293,7 +293,15 @@ html {
 
 .roll {
   /* Width is animated (set from the measured incoming word). Words are pinned to the
-     right edge so they never shift while the box resizes. */
+     right edge so they never shift while the box resizes. Every timing reads from a
+     variable so the note's tweak panel can drive the real component; --s is a slow-motion
+     multiplier. Exit timings derive from entry (2/3 of the duration, 2/3 of the stagger). */
+  --s: var(--roll-speed, 1);
+  --in: var(--roll-in, 300ms);
+  --stagger: var(--roll-stagger, 18ms);
+  --travel: var(--roll-travel, 70%);
+  --blur: var(--roll-blur, 2px);
+  --ease: var(--roll-ease, var(--ease-out-quint));
   position: relative;
   display: inline-block;
   vertical-align: top;
@@ -303,7 +311,7 @@ html {
   /* small gutter so blurred letters aren't clipped at the edges */
   padding: 0.125rem 0.125rem;
   margin: -0.125rem -0.125rem;
-  transition: width 300ms var(--ease-out-quint);
+  transition: width calc(var(--in) * var(--s)) var(--ease);
 }
 .roll-word {
   position: absolute;
@@ -315,27 +323,50 @@ html {
 .roll-letter {
   display: inline-block;
   transition:
-    transform 300ms var(--ease-out-quint),
-    opacity 240ms var(--ease-out-quint),
-    filter 240ms var(--ease-out-quint);
-  transition-delay: calc(var(--i) * 18ms);
+    transform calc(var(--in) * var(--s)) var(--ease),
+    opacity calc(var(--in) * 0.8 * var(--s)) var(--ease),
+    filter calc(var(--in) * 0.8 * var(--s)) var(--ease);
+  transition-delay: calc(var(--i) * var(--stagger) * var(--s));
 }
 /* Leaving: faster, tighter stagger */
 .roll-word[data-out] .roll-letter {
-  transform: translateY(-70%);
+  transform: translateY(calc(var(--travel) * -1));
   opacity: 0;
-  filter: blur(2px);
-  transition-duration: 200ms, 160ms, 160ms;
-  transition-delay: calc(var(--i) * 12ms);
+  filter: blur(var(--blur));
+  transition-duration: calc(var(--in) * 0.667 * var(--s)), calc(var(--in) * 0.533 * var(--s)), calc(var(--in) * 0.533 * var(--s));
+  transition-delay: calc(var(--i) * var(--stagger) * 0.667 * var(--s));
 }
 /* Arriving: start below and blurred */
 @starting-style {
   .roll-word[data-enter] .roll-letter {
-    transform: translateY(70%);
+    transform: translateY(var(--travel));
     opacity: 0;
-    filter: blur(2px);
+    filter: blur(var(--blur));
   }
 }
+
+/* ---- demo-only: earlier versions, recreated for the theme-switcher note ---- */
+/* v1: @keyframes. Changing animation-name restarts it, so a word interrupted mid-roll
+   jumps back to fully visible before it leaves. */
+@keyframes roll-kf-in { from { transform: translateY(var(--travel)); opacity: 0; filter: blur(var(--blur)); } }
+@keyframes roll-kf-out { to { transform: translateY(calc(var(--travel) * -1)); opacity: 0; filter: blur(var(--blur)); } }
+.roll[data-variant="keyframes"] .roll-letter { transition: none; }
+.roll[data-variant="keyframes"] .roll-word[data-enter] .roll-letter {
+  animation: roll-kf-in calc(var(--in) * var(--s)) var(--ease) both;
+  animation-delay: calc(var(--i) * var(--stagger) * var(--s));
+}
+.roll[data-variant="keyframes"] .roll-word[data-out] .roll-letter {
+  transform: none; opacity: 1; filter: none;
+  animation: roll-kf-out calc(var(--in) * 0.667 * var(--s)) var(--ease) both;
+  animation-delay: calc(var(--i) * var(--stagger) * 0.667 * var(--s));
+}
+/* v2: words in an inline-grid column. The column is as wide as the widest word on screen,
+   so while the box narrows the words align past its edge (clipped), then snap when the old
+   word is removed. */
+.roll[data-variant="grid"] { display: inline-grid; justify-items: end; }
+.roll[data-variant="grid"] .roll-word { position: static; grid-area: 1 / 1; }
+/* bounds overlay */
+.roll[data-bounds] { outline: 1px dashed color-mix(in srgb, var(--fg) 45%, transparent); outline-offset: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   .roll { transition: none; }
@@ -522,3 +553,111 @@ html {
 .is-plucking, .is-plucking * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
 .footer-string:has(rect:hover) path,
 .footer-string:has(rect:active) path { stroke: var(--faint); }
+
+/* ---------- Note pages ---------- */
+.note-back { font-size: 0.875rem; color: var(--faint); width: fit-content; transition: color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .note-back:hover { color: var(--fg); } }
+.note-back:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 2px; }
+
+.note-body { display: flex; flex-direction: column; gap: 1rem; color: var(--muted); }
+.note-body p { text-wrap: pretty; }
+.note-body h2 { margin-top: 1.75rem; color: var(--fg); font-weight: 500; }
+.note-body ul { display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.1rem; list-style: disc; }
+.note-body li::marker { color: var(--faint); }
+.note-inline {
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 0.3125rem;
+  background: var(--hover);
+  color: var(--fg);
+  white-space: nowrap;
+}
+
+.note-code { border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; background: var(--surface); }
+.note-code-file { padding: 0.5rem 0.875rem; font-size: 0.75rem; color: var(--faint); border-bottom: 1px solid var(--line); }
+.note-code pre {
+  margin: 0;
+  padding: 0.875rem;
+  overflow-x: auto;
+  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: var(--fg);
+  tab-size: 2;
+}
+
+.note-figure { display: flex; flex-direction: column; gap: 0.625rem; margin: 0.5rem 0; }
+.note-stage {
+  display: grid;
+  place-items: center;
+  min-height: 11rem;
+  padding: 2rem 1rem;
+  border-radius: 0.875rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.note-figure figcaption { font-size: 0.875rem; color: var(--faint); text-wrap: pretty; }
+.note-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
+.note-chips { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; }
+.note-chips-label { color: var(--faint); margin-right: 0.25rem; }
+.note-chips button {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.note-chips button[aria-pressed="true"] { background: var(--hover); color: var(--fg); }
+@media (hover: hover) and (pointer: fine) { .note-chips button:hover { color: var(--fg); } }
+.note-chips button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+.note-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; }
+.note-cycler { display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; width: 9.5rem; justify-self: center; }
+.note-cycler-label { font-size: 0.75rem; color: var(--faint); align-self: flex-end; }
+.note-roll-button {
+  font-size: 1.75rem;
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+.note-roll-button:focus-visible { outline: 2px solid var(--fg); outline-offset: 4px; }
+
+/* Note tweak panel + prompt */
+.note-tweaks {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
+  background: var(--surface);
+  font-size: 0.8125rem;
+}
+.note-slider { display: grid; grid-template-columns: 4.5rem 1fr 3.5rem; align-items: center; gap: 0.75rem; color: var(--faint); }
+.note-slider input { width: 100%; accent-color: var(--fg); cursor: pointer; }
+.note-slider output { text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+.note-tweaks-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.25rem; }
+.note-tweaks .note-chips-label { width: 4.5rem; margin-right: 0.5rem; }
+.note-reset {
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, opacity 150ms ease;
+}
+.note-reset:disabled { opacity: 0.4; cursor: default; }
+@media (hover: hover) and (pointer: fine) { .note-reset:not(:disabled):hover { color: var(--fg); background: var(--hover); } }
+.note-reset:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+.note-prompt-head { display: flex; align-items: center; justify-content: space-between; }
+.note-copy {
+  padding: 0.125rem 0.5rem;
+  margin: -0.125rem -0.5rem -0.125rem 0;
+  border-radius: 0.375rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .note-copy:hover { color: var(--fg); background: var(--hover); } }
+.note-copy:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+.note-prompt { white-space: pre-wrap; font-size: 0.8125rem; max-height: 22rem; overflow: auto; }

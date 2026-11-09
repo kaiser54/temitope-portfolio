@@ -16,8 +16,11 @@ function subscribe(cb: () => void) {
 export function navigate(route: Route, { replace = false } = {}) {
   const path = pathFor(route)
   if (path === window.location.pathname) return
+  const pageChange = !!route.note || !!parseRoute(window.location.pathname)?.note
   window.history[replace ? 'replaceState' : 'pushState'](null, '', path)
   listeners.forEach((l) => l())
+  // opening or leaving a note is a new page: start at the top
+  if (pageChange) window.scrollTo(0, 0)
 }
 
 export function useRoute(): Route {

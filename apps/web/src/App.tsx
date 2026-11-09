@@ -1,16 +1,26 @@
-import type { CSSProperties } from 'react'
+import { useEffect, type CSSProperties } from 'react'
 import { contact, profile } from './content'
 import { Company } from './components/Company'
 import { LocalTime } from './components/LocalTime'
 import { ThemeToggle } from './components/ThemeToggle'
 import { FooterString } from './components/FooterString'
 import { SectionTabs } from './components/SectionTabs'
+import { NotePage } from './components/NotePage'
+import { applyHead, useRoute } from './router'
 
 const visibleContact = contact.filter((g) => !g.hidden)
 
 export function App() {
+  const route = useRoute()
+  // <title> + description for every route (home, sections, filters, notes)
+  useEffect(() => applyHead(route), [route.section, route.filter, route.home, route.note])
+
   return (
     <main className="mx-auto flex min-h-dvh max-w-[600px] flex-col gap-16 px-6 pt-12 pb-20 font-sans text-[15px] leading-relaxed sm:pt-16 sm:pb-28">
+      {route.note ? (
+        <NotePage key={route.note} slug={route.note} />
+      ) : (
+      <>
       <header className="enter flex flex-col gap-6" style={{ '--i': 0 } as CSSProperties}>
         <div>
           <img
@@ -59,6 +69,8 @@ export function App() {
       </header>
 
       <SectionTabs index={1} />
+      </>
+      )}
 
 
       <footer
