@@ -63,7 +63,7 @@ type Word = {
 type Candidate = { range: Range; key: string; page: DOMRect; parent: Element }
 
 let layer: HTMLDivElement | null = null
-let ball: HTMLImageElement | null = null
+let ball: HTMLDivElement | null = null // the flying copy: a wrapper (it carries the big grab area) around the photo
 let source: HTMLImageElement | null = null
 let phase: 'idle' | 'drag' | 'fly' | 'home' = 'idle'
 const pos: Vec = { x: 0, y: 0 } // ball centre, viewport
@@ -99,11 +99,15 @@ export function grabAvatar(img: HTMLImageElement, clientX: number, clientY: numb
     pos.y = r.top + r.height / 2
     vel.x = vel.y = 0
     rot = vrot = 0
-    ball = img.cloneNode() as HTMLImageElement
-    ball.removeAttribute('width')
-    ball.removeAttribute('height')
-    ball.alt = ''
-    ball.className = 'catapult-ball avatar'
+    const photo = img.cloneNode() as HTMLImageElement
+    photo.removeAttribute('width')
+    photo.removeAttribute('height')
+    photo.alt = ''
+    photo.className = 'catapult-ball-photo avatar'
+    ball = document.createElement('div')
+    ball.className = 'catapult-ball'
+    ball.append(photo)
+    // The wrapper's ::before is a large invisible grab area, so it's easy to catch while it's moving.
     ball.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return
       e.preventDefault()
