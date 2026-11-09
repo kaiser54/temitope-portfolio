@@ -1,0 +1,524 @@
+@import "tailwindcss";
+@import "@repo/ui/styles.css";
+
+:root {
+  /* Tokens from the Quality Labs design system (packages/tailwind-config/base.css):
+     raw greys + semantic light-mode tokens, then this site's roles point at them. */
+  --Color-Grey-00: #ffffff;
+  --Color-Grey-25: #f5f5f5;
+  --Color-Grey-35: #f0f0f0;
+  --Color-Grey-50: #e6e6e6;
+  --Color-Grey-75: #d8d8d8;
+  --Color-Grey-100: #b2b2b2;
+  --Color-Grey-200: #8d8d8d;
+  --Color-Grey-300: #595959;
+  --Color-Grey-400: #2a2a2a;
+  --Color-Grey-500: #070707;
+  --Color-Grey-600: #121212;
+  --Color-Grey-700: #090909;
+  --Color-Grey-800: #212121;
+  --Color-Grey-900: #3d3d3d;
+
+  --Text-default: var(--Color-Grey-400);
+  --Text-secondary: var(--Color-Grey-200);
+  --Text-tertiary: var(--Color-Grey-100);
+  --Backgrounds-canvas: #f9f9f9;
+  --Backgrounds-hover: var(--Color-Grey-35);
+  --Backgrounds-clicked: var(--Color-Grey-50);
+  --Backgrounds-dropdown: var(--Color-Grey-00);
+  --Backgrounds-dropdown-hover: var(--Color-Grey-35);
+  --Border-default: var(--Color-Grey-25);
+  --Border-on-bg: var(--Color-Grey-50);
+  --Border-divider: var(--Color-Grey-35);
+
+  /* site roles → Quality Labs tokens */
+  --bg: var(--Backgrounds-canvas);
+  --surface: var(--Backgrounds-dropdown);
+  --fg: var(--Text-default);
+  --muted: var(--Text-secondary);
+  --faint: var(--Text-tertiary);
+  --line: var(--Border-divider);
+  --line-strong: var(--Border-on-bg);
+  --hover: var(--Backgrounds-hover);
+  --surface-hover: var(--Backgrounds-dropdown-hover);
+  --selection: var(--Backgrounds-clicked);
+  --shadow: 0 1px 2px rgb(24 24 27 / 0.04), 0 8px 24px -6px rgb(24 24 27 / 0.1);
+  --ring-inset: inset 0 0 0 0 transparent;
+  color-scheme: light;
+}
+/* Light is the default; dark only when chosen (see ThemeToggle + inline script in index.html) */
+:root[data-theme="dark"] {
+  /* Quality Labs dark-mode tokens */
+  --Text-default: var(--Color-Grey-25);
+  --Text-secondary: var(--Color-Grey-100);
+  --Text-tertiary: var(--Color-Grey-300);
+  --Backgrounds-canvas: var(--Color-Grey-700);
+  --Backgrounds-hover: var(--Color-Grey-400);
+  --Backgrounds-clicked: var(--Color-Grey-300);
+  --Backgrounds-dropdown: var(--Color-Grey-400);
+  --Backgrounds-dropdown-hover: var(--Color-Grey-900);
+  --Border-default: var(--Color-Grey-800);
+  --Border-on-bg: var(--Color-Grey-400);
+  --Border-divider: var(--Color-Grey-400);
+  /* same role mapping as light; only the tokens change */
+  --line: var(--Border-default);
+  --line-strong: var(--Border-divider);
+  --shadow: 0 0 0 1px rgb(255 255 255 / 0.04), 0 12px 32px -8px rgb(0 0 0 / 0.6);
+  /* hairline top light so raised surfaces read as lifted, not just lighter */
+  --ring-inset: inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+  color-scheme: dark;
+}
+/* Applied for one frame while switching so every element changes colour together */
+.theme-switching *:not(.roll, .roll-letter),
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-hover: var(--hover);
+  --color-surface: var(--surface);
+  --color-line-strong: var(--line-strong);
+  --shadow-card: var(--shadow);
+  --font-sans: "Inter", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ease-out-quint: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01";
+}
+
+::selection {
+  background: var(--selection);
+  color: var(--fg);
+}
+
+/* Entrance: blur + rise, staggered by --i. Short distance, strong ease-out. */
+@keyframes enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+    filter: blur(4px);
+  }
+}
+.enter {
+  animation: enter 600ms var(--ease-out-quint) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* Links: colour shift only, no layout movement */
+.link {
+  color: var(--fg);
+  text-decoration-line: underline;
+  text-decoration-color: var(--faint);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+  transition: text-decoration-color 150ms ease;
+}
+@media (hover: hover) {
+  .link:hover { text-decoration-color: var(--fg); }
+}
+
+/* Contact links: dotted underline that firms up on hover */
+.link-dotted {
+  color: var(--fg);
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--faint);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+  transition: text-decoration-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .link-dotted:hover { text-decoration-color: var(--fg); }
+}
+.link-dotted:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 2px; }
+
+/* Accordion trigger row */
+.ui-accordion-trigger {
+  position: relative; /* paint above the shared highlight */
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 0.625rem 0.75rem;
+  margin-inline: -0.75rem;
+  width: calc(100% + 1.5rem);
+  border-radius: 0.5rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* One highlight shared by all rows; slides to whichever row is hovered or focused */
+.row-highlight {
+  position: absolute;
+  top: 0;
+  /* pinned to the project column (the year column width is --year-col) */
+  left: calc(var(--year-col, 0px) - 0.75rem);
+  right: -0.75rem;
+  border-radius: 0.5rem;
+  background: var(--hover);
+  box-shadow: var(--ring-inset);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 220ms var(--ease-out-quint),
+    height 220ms var(--ease-out-quint),
+    opacity 150ms ease;
+}
+.row-highlight[data-visible] { opacity: 1; }
+.row-highlight[data-focus] { box-shadow: var(--ring-inset), 0 0 0 2px var(--fg); }
+.row-highlight[data-snap] { transition: opacity 150ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .row-highlight { transition: opacity 150ms ease; }
+}
+/* Keyboard focus ring is drawn on the shared card highlight instead (see .row-highlight[data-focus]) */
+.ui-accordion-trigger:focus-visible {
+  outline: none;
+}
+/* Whole project (row + open panel) paints above the shared highlight */
+.project-item {
+  position: relative;
+}
+.ui-accordion-trigger .icon {
+  transition: transform 220ms var(--ease-out-quint);
+}
+.ui-accordion-trigger[data-panel-open] .icon {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enter { animation: none; }
+  .ui-accordion-trigger,
+  .ui-accordion-trigger .icon { transition: none; }
+}
+
+/* Inline company chip in the intro.
+   Mark is hidden at rest and grows in on hover / focus / while its card is open. */
+.company {
+  color: var(--fg);
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 0.375rem;
+}
+.company-mark {
+  display: inline-grid;
+  place-items: center;
+  overflow: hidden;
+  width: 0;
+  height: 1.125rem;
+  margin-inline-end: 0;
+  /* em here = the paragraph's font size (the letter's size lives on the inner span).
+     Put the mark's centre at the middle of the capital letters (~0.36em above the baseline). */
+  vertical-align: calc(0.36em - 0.5625rem);
+  border-radius: 0.3rem;
+  background: var(--fg);
+  color: var(--bg);
+  line-height: 1;
+  opacity: 0;
+  scale: 0.6;
+  transition:
+    width 220ms var(--ease-out-quint),
+    margin 220ms var(--ease-out-quint),
+    opacity 180ms var(--ease-out-quint),
+    scale 220ms var(--ease-out-quint);
+}
+.company-mark > span {
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.company-mark > img {
+  width: 1.125rem;
+  height: 1.125rem;
+  max-width: none;
+  object-fit: cover;
+}
+.company-mark:has(> img) {
+  background: transparent;
+}
+.company-mark[data-tile] {
+  background: #fff;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+.company-mark[data-tile] > img {
+  padding: 3px;
+}
+.company:focus-visible .company-mark,
+.company[data-popup-open] .company-mark {
+  width: 1.125rem;
+  margin-inline-end: 0.375rem;
+  opacity: 1;
+  scale: 1;
+}
+@media (hover: hover) {
+  .company:hover .company-mark {
+    width: 1.125rem;
+    margin-inline-end: 0.375rem;
+    opacity: 1;
+    scale: 1;
+  }
+}
+.company:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .company-mark { transition: opacity 120ms ease; scale: 1; }
+}
+
+/* Theme toggle: a word that rolls letter by letter (Light → Dark → System).
+   Transitions (not keyframes) so rapid clicks retarget smoothly. */
+.theme-toggle {
+  padding: 0.25rem 0.5rem;
+  margin: -0.25rem -0.5rem;
+  border-radius: 0.375rem;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, transform 150ms var(--ease-out-quint);
+}
+@media (hover: hover) and (pointer: fine) {
+  .theme-toggle:hover { color: var(--fg); background: var(--hover); }
+}
+.theme-toggle:active { transform: scale(0.97); }
+.theme-toggle:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+
+.roll {
+  /* Width is animated (set from the measured incoming word). Words are pinned to the
+     right edge so they never shift while the box resizes. */
+  position: relative;
+  display: inline-block;
+  vertical-align: top;
+  box-sizing: content-box;
+  height: 1lh;
+  overflow: hidden;
+  /* small gutter so blurred letters aren't clipped at the edges */
+  padding: 0.125rem 0.125rem;
+  margin: -0.125rem -0.125rem;
+  transition: width 300ms var(--ease-out-quint);
+}
+.roll-word {
+  position: absolute;
+  top: 0.125rem;
+  right: 0.125rem;
+  white-space: pre;
+}
+
+.roll-letter {
+  display: inline-block;
+  transition:
+    transform 300ms var(--ease-out-quint),
+    opacity 240ms var(--ease-out-quint),
+    filter 240ms var(--ease-out-quint);
+  transition-delay: calc(var(--i) * 18ms);
+}
+/* Leaving: faster, tighter stagger */
+.roll-word[data-out] .roll-letter {
+  transform: translateY(-70%);
+  opacity: 0;
+  filter: blur(2px);
+  transition-duration: 200ms, 160ms, 160ms;
+  transition-delay: calc(var(--i) * 12ms);
+}
+/* Arriving: start below and blurred */
+@starting-style {
+  .roll-word[data-enter] .roll-letter {
+    transform: translateY(70%);
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roll { transition: none; }
+  .roll-letter { transition: opacity 150ms ease; transition-delay: 0ms; }
+  .roll-word[data-out] .roll-letter { transform: none; filter: none; transition-delay: 0ms; }
+  @starting-style {
+    .roll-word[data-enter] .roll-letter { transform: none; filter: none; }
+  }
+}
+
+/* Section tabs: "Work¹ Notes²" with an underline that slides to the active tab */
+.section-tabs {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+.section-tab {
+  position: relative;
+  padding-bottom: 0.25rem;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.section-tab[data-active] { color: var(--fg); }
+@media (hover: hover) and (pointer: fine) {
+  .section-tab:hover { color: var(--fg); }
+}
+.section-tab:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 0.25rem; }
+/* Notes tab + filter chevron behave as one unit */
+.section-unit { position: relative; display: inline-flex; align-items: center; gap: 0.125rem; }
+.tab-select-value {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tab-chevron {
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin-bottom: 0.25rem;
+  border-radius: 0.25rem;
+  color: var(--faint);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, transform 150ms var(--ease-out-quint);
+}
+.section-unit:has(.section-tab[data-active]) .tab-select-value {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.tab-chevron { color: var(--fg); }
+@media (hover: hover) and (pointer: fine) {
+  .tab-chevron:hover { background: var(--hover); color: var(--fg); }
+}
+.tab-chevron:active { transform: scale(0.92); }
+.tab-chevron:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+.tab-chevron svg { transition: rotate 200ms var(--ease-out-quint); }
+.tab-chevron[data-popup-open] svg { rotate: 180deg; }
+
+.section-tab sup { margin-left: 0.125rem; font-size: 0.6875rem; top: -0.5em; }
+
+.section-indicator {
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong);
+  pointer-events: none;
+  will-change: transform, width;
+  /* position, width and thickness are driven by a spring (RubberIndicator.ts) */
+}
+
+/* Tab content swipes with direction: moving to a tab on the right, new content slides in from
+   the right while the old slides out to the left (and the reverse). Panels share one grid cell
+   so the outgoing panel can animate out without pushing the page around. */
+.tab-panels {
+  display: grid;
+  /* vertical scrolling stays native; horizontal moves come to the swipe gesture */
+  touch-action: pan-y;
+}
+/* links and images inside panels shouldn't start a native drag-and-drop instead of the swipe */
+.tab-panels a, .tab-panels img { -webkit-user-drag: none; }
+.is-swiping, .is-swiping * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
+.tab-panels > .tab-panel { grid-area: 1 / 1; min-width: 0; }
+.tab-panel {
+  --swipe: 28px;
+  transition:
+    opacity 260ms var(--ease-out-quint),
+    transform 340ms var(--ease-out-quint),
+    filter 260ms var(--ease-out-quint);
+}
+.tab-panel[data-starting-style] { opacity: 0; filter: blur(3px); }
+.tab-panel[data-starting-style][data-activation-direction="right"] { transform: translateX(var(--swipe)); }
+.tab-panel[data-starting-style][data-activation-direction="left"] { transform: translateX(calc(var(--swipe) * -1)); }
+/* arriving after a swipe gesture: lands with a small overshoot */
+.swipe-commit .tab-panel:not([data-ending-style]) {
+  transition:
+    opacity 260ms var(--ease-out-quint),
+    transform 560ms cubic-bezier(0.34, 1.45, 0.64, 1),
+    filter 260ms var(--ease-out-quint);
+}
+/* leaving: quicker, and it never blocks the incoming panel */
+.tab-panel[data-ending-style] {
+  opacity: 0;
+  filter: blur(3px);
+  pointer-events: none;
+  transition-duration: 180ms, 220ms, 180ms;
+}
+.tab-panel[data-ending-style][data-activation-direction="right"] { transform: translateX(calc(var(--swipe) * -1)); }
+.tab-panel[data-ending-style][data-activation-direction="left"] { transform: translateX(var(--swipe)); }
+.tab-panel:focus-visible { outline: none; }
+
+/* Notes rows */
+@keyframes notes-in {
+  from { opacity: 0; transform: translateY(3px); filter: blur(2px); }
+}
+.notes-list { animation: notes-in 220ms var(--ease-out-quint) both; }
+.note-row[aria-disabled] { cursor: default; }
+@media (hover: hover) and (pointer: fine) {
+  .note-link:hover .font-medium { text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel { transition: opacity 150ms ease; }
+  .tab-panel[data-starting-style],
+  .tab-panel[data-ending-style] { transform: none !important; filter: none; }
+  .notes-list { animation: fade-in 150ms ease both; }
+}
+
+/* Company preview image in hover cards: placeholder tint, then a quick fade once decoded */
+.og-image {
+  background: var(--hover);
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+.og-image[data-loaded] { opacity: 1; }
+
+/* Avatar: hairline ring so the photo's dark edges hold their shape on both themes */
+.avatar {
+  background: var(--hover);
+  box-shadow: 0 0 0 1px var(--line-strong);
+}
+
+/* Native-style select over the Notes tab: same type size as the tab so the selected option sits exactly on the label */
+.tab-select-popup { font-size: 15px; }
+
+/* Footer divider you can pluck (FooterString.tsx). Zero-height in layout; the drawing
+   overflows above and below so the bend never pushes content around. */
+.footer-string {
+  position: relative;
+  height: 1px;
+}
+.footer-string svg {
+  position: absolute;
+  left: 0;
+  top: -80px; /* half the drawing height, so the line sits exactly where the border was */
+  width: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.footer-string path {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 1px;
+  transition: stroke 150ms ease;
+}
+.footer-string rect {
+  fill: transparent;
+  pointer-events: all;
+  cursor: grab;
+  touch-action: none;
+}
+.footer-string rect:active { cursor: grabbing; }
+/* while plucking: no text selection anywhere, grabbing cursor even off the line */
+.is-plucking, .is-plucking * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
+.footer-string:has(rect:hover) path,
+.footer-string:has(rect:active) path { stroke: var(--faint); }

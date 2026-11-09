@@ -1,0 +1,8 @@
+node_modules
+dist
+*.tsbuildinfo
+.DS_Store
+.env*.local
+
+# personal documents (CV, résumé) — kept local, not published
+docs/

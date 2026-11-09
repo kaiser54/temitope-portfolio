@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f9f9f9" />
+    <script>
+      // Apply a saved theme before first paint. Default is light; "system" follows the OS.
+      try {
+        var t = localStorage.getItem('theme')
+        if (t === 'dark' || (t === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.dataset.theme = 'dark'
+          document.querySelector('meta[name="theme-color"]').content = '#090909'
+        }
+      } catch {}
+    </script>
+    <meta
+      name="description"
+      content="Temitope Agboola — frontend and product engineer in Lagos building fintech, commerce and real-time products."
+    />
+    <link rel="icon" href="/avatar.jpg" />
+    <title>Temitope Agboola</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

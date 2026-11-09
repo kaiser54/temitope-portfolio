@@ -1,0 +1,76 @@
+import type { CSSProperties } from 'react'
+import { contact, profile } from './content'
+import { Company } from './components/Company'
+import { LocalTime } from './components/LocalTime'
+import { ThemeToggle } from './components/ThemeToggle'
+import { FooterString } from './components/FooterString'
+import { SectionTabs } from './components/SectionTabs'
+
+const visibleContact = contact.filter((g) => !g.hidden)
+
+export function App() {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-[600px] flex-col gap-16 px-6 pt-12 pb-20 font-sans text-[15px] leading-relaxed sm:pt-16 sm:pb-28">
+      <header className="enter flex flex-col gap-6" style={{ '--i': 0 } as CSSProperties}>
+        <div>
+          <img
+            src="/avatar.jpg"
+            alt={profile.name}
+            width={40}
+            height={40}
+            className="avatar mb-4 size-10 rounded-full object-cover"
+          />
+          <h1 className="font-medium">{profile.name}</h1>
+          <p className="text-muted">
+            {profile.role} · {profile.location} · <LocalTime timeZone={profile.timeZone} />
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 text-muted">
+          {profile.intro.map((segments, i) => (
+            <p key={i} className="text-pretty">
+              {segments.map((seg, j) =>
+                typeof seg === 'string' ? seg : <Company key={j} id={seg.company} />,
+              )}
+            </p>
+          ))}
+        </div>
+        {visibleContact.length > 0 && (
+        <div className="grid grid-cols-2 gap-6 pt-2 text-sm">
+          {visibleContact.map((group) => (
+            <div key={group.title} className="flex flex-col gap-2">
+              <h2 className="text-faint">{group.title}</h2>
+              <ul className="flex flex-col gap-1.5">
+                {group.links.map((l) => (
+                  <li key={l.href}>
+                    <a
+                      className="link-dotted"
+                      href={l.href}
+                      {...(l.href.startsWith('http') && { target: '_blank', rel: 'noreferrer' })}
+                    >
+                      {l.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+        )}
+      </header>
+
+      <SectionTabs index={1} />
+
+
+      <footer
+        className="enter mt-auto flex flex-col text-sm text-faint"
+        style={{ '--i': 2 } as CSSProperties}
+      >
+        <FooterString />
+        <div className="flex items-center justify-between gap-4 pt-6">
+          <p>© {new Date().getFullYear()} {profile.name}</p>
+          <ThemeToggle />
+        </div>
+      </footer>
+    </main>
+  )
+}
