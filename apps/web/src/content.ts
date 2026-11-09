@@ -1,6 +1,16 @@
 export type CompanyKey = keyof typeof companies
 
 export const companies = {
+  quality: {
+    og: '/og/quality.jpg' as string | undefined, // site preview image, resized to 640px
+    name: 'Quality',
+    initial: 'Q',
+    logo: '/logos/quality.svg' as string | undefined,
+    href: 'https://usequality.app' as string | undefined,
+    role: 'Co-founder',
+    years: '2026',
+    blurb: 'Visual feedback and QA for software teams — feedback right where it happens.',
+  },
   passpoint: {
     og: '/og/passpoint.jpg' as string | undefined, // site preview image, resized to 640px
     name: 'Passpoint',
@@ -53,6 +63,7 @@ export const profile = {
   location: 'Lagos, Nigeria',
   timeZone: 'Africa/Lagos',
   intro: [
+    ['Co-founder of ', { company: 'quality' }, ' — visual feedback and QA for software teams.'],
     ['I build frontends for products that move money and run businesses — across fintech, commerce and procurement.'],
     [
       'Currently at ',

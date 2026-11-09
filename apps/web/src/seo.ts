@@ -63,7 +63,7 @@ export function routeMeta(route: Route): { title: string; description: string } 
   if (route.section === 'work') {
     return {
       title: `${name} — ${profile.role} in Lagos`,
-      description: `${name} is a ${profile.role.toLowerCase()} in ${profile.location} building fintech, commerce and procurement products.`,
+      description: `${name} is a ${profile.role.toLowerCase()} in ${profile.location} and co-founder of Quality, building fintech, commerce and procurement products.`,
     }
   }
   if (route.filter === 'all') {

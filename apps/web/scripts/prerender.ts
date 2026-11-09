@@ -89,6 +89,7 @@ function personLd() {
         image: `${site}/avatar.jpg`,
         address: { '@type': 'PostalAddress', addressLocality: 'Lagos', addressCountry: 'NG' },
         sameAs,
+        worksFor: { '@type': 'Organization', name: 'Quality', url: 'https://usequality.app' },
       },
       { '@type': 'WebSite', '@id': `${site}/#website`, url: `${site}/`, name: profile.name, publisher: { '@id': `${site}/#person` } },
     ],
