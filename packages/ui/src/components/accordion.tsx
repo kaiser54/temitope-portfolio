@@ -4,8 +4,11 @@ import type { ComponentProps } from 'react'
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ')
 
+/** How long a panel takes to open or close, in seconds (anything timed to it, like the halo, reads this). */
+export const ACCORDION_DURATION = 0.28
+
 /** Opening / closing a panel: quick and plain (280ms ease-out-quint). Bounce is for gestures, not content. */
-const FOLD: Transition = { duration: 0.28, ease: [0.23, 1, 0.32, 1] }
+const FOLD: Transition = { duration: ACCORDION_DURATION, ease: [0.23, 1, 0.32, 1] }
 
 export function AccordionRoot({ className, ...props }: ComponentProps<typeof Base.Root>) {
   return <Base.Root className={cx('flex flex-col', className as string)} {...props} />

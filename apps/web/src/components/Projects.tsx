@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FocusEvent, type PointerEvent } from 
 import { AccordionItem, AccordionPanel, AccordionRoot, AccordionTrigger } from '@repo/ui'
 import type { Project } from '../content'
 import { prefersReducedMotion, springs } from '../motion'
+import { haloFromClick, readyHalo, warmUpHalo } from './halo/haloTrigger'
 
 /** "2023—26" → 2026, "2024" → 2024. Projects are grouped by the latest year worked on. */
 const endYear = (range: string) => {
@@ -119,6 +120,7 @@ export function Projects({ items }: { items: Project[] }) {
   // Target the whole item (row + open panel), so an open project highlights as one card.
   const onPointerEnter = (e: PointerEvent<HTMLElement>) => {
     if (e.pointerType === 'mouse') moveTo(e.currentTarget, false, false)
+    readyHalo(e.currentTarget) // snapshot it now, so a click starts its shockwave without a hitch
   }
   const onFocus = (e: FocusEvent<HTMLElement>) => {
     const item = e.currentTarget.closest<HTMLElement>('.project-item')
@@ -126,12 +128,18 @@ export function Projects({ items }: { items: Project[] }) {
   }
 
   return (
-    <div ref={listRef} className="relative [overflow-anchor:none] [--year-col:0px] sm:[--year-col:4.5rem]" onPointerLeave={() => {
+    <div
+      ref={listRef}
+      className="relative [overflow-anchor:none] [--year-col:0px] sm:[--year-col:4.5rem]"
+      onPointerEnter={() => warmUpHalo(listRef.current)}
+      onPointerLeave={() => {
         // Keep the card (and its focus ring) if a row has keyboard focus.
         if (!listRef.current?.querySelector(':focus-visible')) hide()
       }}
       onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hide()
+        // Focus left the list (keyboard): drop the card. But a click inside an open project's details also
+        // takes focus off its row; the pointer is still over the card then, so keep it.
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null) && !e.currentTarget.matches(':hover')) hide()
       }}
     >
       <m.div ref={highlightRef} aria-hidden className="row-highlight" style={{ y, height }} />
@@ -141,7 +149,14 @@ export function Projects({ items }: { items: Project[] }) {
             <h3 className="pb-1 text-sm text-faint tabular-nums sm:pt-[0.7rem] sm:pb-0">{year}</h3>
             <div className="flex flex-col">
               {group.map((p) => (
-                <AccordionItem key={p.name} value={p.name} className="project-item" onPointerEnter={onPointerEnter}>
+                <AccordionItem
+                  key={p.name}
+                  value={p.name}
+                  className="project-item"
+                  onPointerEnter={onPointerEnter}
+                  // shockwave halo across the card from wherever it's clicked (components/halo)
+                  onClick={(e) => haloFromClick(e, listRef.current)}
+                >
                   <AccordionTrigger onFocus={onFocus} onClick={(e) => pinRow(e.currentTarget)}>
                     <span className="font-medium">{p.name}</span>
                     <span className="min-w-0 flex-1 truncate text-muted">{p.kind}</span>
