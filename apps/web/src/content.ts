@@ -66,7 +66,7 @@ export const profile = {
     ['Co-founder of ', { company: 'quality' }, ' — visual feedback and QA for software teams.'],
     ['I build frontends for products that move money and run businesses — across fintech, commerce and procurement.'],
     [
-      'Currently at ',
+      'Currently shaping the world of digital payment infrastructures at ',
       { company: 'passpoint' },
       '. Previously led product engineering at ',
       { company: 'ipc' },
