@@ -4,6 +4,12 @@
   "compatibility_date": "2026-11-01",
   "workers_dev": true,
   "preview_urls": true,
+  // Custom domains: Cloudflare creates the DNS records and SSL certs on deploy.
+  // www is redirected to the apex with a Redirect Rule (see dashboard).
+  "routes": [
+    { "pattern": "temitopeagboola.com", "custom_domain": true },
+    { "pattern": "www.temitopeagboola.com", "custom_domain": true }
+  ],
   "assets": {
     "directory": "./apps/web/dist",
     // /notes → notes.html, /notes/writing → notes/writing.html (prerendered pages)
