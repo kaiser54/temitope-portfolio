@@ -131,8 +131,11 @@
 
       /* I — Corner note: soft grey card, mostly empty; name + two-line statement, small, bottom-left. */
       /* site greyscale (Quality Labs tokens): canvas / Text-default / Text-secondary */
-      .vI { --canvas: #f9f9f9; --ink: #595959; --ink-2: #8d8d8d; } /* name: Grey-300, softer than Text-default */
-      .vI.dark { --canvas: #090909; --ink: #f5f5f5; --ink-2: #b2b2b2; }
+      .vI, .vJ { --canvas: #f9f9f9; --ink: #595959; --ink-2: #8d8d8d; } /* name: Grey-300, softer than Text-default */
+      .vI.dark, .vJ.dark { --canvas: #090909; --ink: #f5f5f5; --ink-2: #b2b2b2; }
+      .vJ .note { position: absolute; left: 80px; bottom: 84px; }
+      .vJ .note b { display: block; font-size: 58px; font-weight: 500; color: var(--ink); }
+      .vJ .note p { margin-top: 10px; font-size: 48px; font-weight: 400; color: var(--ink-2); }
       .vI .note { position: absolute; left: 80px; bottom: 84px; }
       /* name and statement share one size; weight alone separates them, as in the reference */
       .vI .note b { display: block; font-size: 58px; font-weight: 500; color: var(--ink); }
@@ -166,7 +169,9 @@
       const HOST = 'temitope-portfolio'
 
       const VARIANTS = {
-        I: { label: 'Corner note', note: 'Soft grey, mostly empty; name and a two-line statement, small, bottom-left. (Exported to public/og.png)',
+        J: { label: 'Corner note · role', note: 'Same corner note, with the role in place of the statement. (Exported to public/og.png)',
+             html: `<div class="note"><b>${NAME}</b><p>${ROLE}</p></div>` },
+        I: { label: 'Corner note', note: 'Soft grey, mostly empty; name and a two-line statement, small, bottom-left.',
              html: `<div class="note"><b>${NAME}</b>
                     <p>I build frontends for products that<br>move money and run businesses.</p></div>` },
         G: { label: 'Minimal', note: 'Two regular-weight grey lines on white. Nothing else.',
