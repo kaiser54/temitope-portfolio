@@ -8,7 +8,7 @@ export const companies = {
     logo: '/logos/quality.svg' as string | undefined,
     href: 'https://usequality.app' as string | undefined,
     role: 'Co-founder',
-    years: '2026',
+    years: '2025—now',
     blurb: 'Visual feedback and QA for software teams — feedback right where it happens.',
   },
   passpoint: {
