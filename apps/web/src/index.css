@@ -633,9 +633,6 @@ html {
   background: var(--surface);
   font-size: 0.8125rem;
 }
-.note-slider { display: grid; grid-template-columns: 4.5rem 1fr 3.5rem; align-items: center; gap: 0.75rem; color: var(--faint); }
-.note-slider input { width: 100%; accent-color: var(--fg); cursor: pointer; }
-.note-slider output { text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
 .note-tweaks-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.25rem; }
 .note-tweaks .note-chips-label { width: 4.5rem; margin-right: 0.5rem; }
 .note-reset {
@@ -661,3 +658,186 @@ html {
 @media (hover: hover) and (pointer: fine) { .note-copy:hover { color: var(--fg); background: var(--hover); } }
 .note-copy:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
 .note-prompt { white-space: pre-wrap; font-size: 0.8125rem; max-height: 22rem; overflow: auto; }
+
+/* ---------- Scrubber (slider row) ----------
+   One registered number, --p (0–1), drives the fill, the handle line and the hover preview,
+   so a single 100ms transition keeps them in step. A drag turns the transition off, gluing the
+   fill to the cursor. Pips sit 12px in from each edge: position(q) = 12px + q × (100% − 24px). */
+@property --p { syntax: "<number>"; inherits: true; initial-value: 0; }
+.scrub {
+  --scrub-fill: color-mix(in srgb, var(--fg) 7%, var(--surface));
+  --scrub-border: color-mix(in srgb, var(--fg) 13%, var(--surface));
+  --scrub-ease: 100ms var(--ease-out-quint);
+  position: relative;
+  /* 8px of extra hit area past each edge; presses there clamp to min or max */
+  margin: 0 -0.5rem;
+  padding: 0 0.5rem;
+  cursor: ew-resize;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.scrub[data-disabled] { opacity: 0.5; pointer-events: none; }
+.scrub-row {
+  position: relative;
+  height: 2rem;
+  border: 1px solid var(--scrub-border);
+  border-radius: 0.5rem;
+  background: var(--surface);
+  overflow: hidden;
+  font-size: 0.8125rem;
+  outline: 1px solid transparent;
+  outline-offset: 2px;
+  transition: --p var(--scrub-ease), outline-color var(--scrub-ease);
+}
+.scrub[data-dragging] .scrub-row { transition: outline-color var(--scrub-ease); }
+.scrub[data-focus] .scrub-row { outline-color: var(--fg); }
+.scrub-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.scrub-fill {
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: calc(var(--p) * 100%);
+  background: var(--scrub-fill);
+  z-index: 3;
+}
+.scrub[data-variant="pips"] .scrub-fill { width: calc(16px + var(--p) * (100% - 24px)); }
+/* From the fill edge to the snapped hover value; --h is the hover position (0–1). */
+.scrub-preview {
+  position: absolute;
+  inset-block: 0;
+  left: calc(min(var(--p), var(--h)) * 100%);
+  right: calc(100% - max(var(--p), var(--h)) * 100%);
+  background: color-mix(in srgb, var(--fg) 3%, transparent);
+  opacity: 0;
+  transition: opacity 150ms ease;
+  z-index: 3;
+  pointer-events: none;
+}
+.scrub[data-variant="pips"] .scrub-preview {
+  left: calc(12px + min(var(--p), var(--h)) * (100% - 24px));
+  right: calc(100% - 12px - max(var(--p), var(--h)) * (100% - 24px));
+}
+.scrub-preview[data-show] { opacity: 1; }
+/* 2px handle line: grows 2px taller and darkens 25% → 50% → 100% for rest, hover, focus.
+   At min it stays 8px in, so it never leaves the row. */
+.scrub-line {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: max(8px, calc(var(--p) * 100% - 9px));
+  width: 2px;
+  border-radius: 1px;
+  background: color-mix(in srgb, var(--fg) 25%, transparent);
+  transition: top var(--scrub-ease), bottom var(--scrub-ease), background-color var(--scrub-ease);
+  z-index: 3;
+}
+.scrub[data-variant="pips"] .scrub-line { left: calc(11px + var(--p) * (100% - 24px)); }
+.scrub[data-active] .scrub-line { top: 7px; bottom: 7px; background: color-mix(in srgb, var(--fg) 50%, transparent); }
+.scrub[data-focus] .scrub-line { background: var(--fg); }
+.scrub-dot {
+  position: absolute;
+  top: 50%;
+  left: calc(12px + var(--q) * (100% - 24px));
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+  opacity: 0.3;
+  translate: -50% -50%;
+  z-index: 1;
+}
+.scrub-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 4;
+  transition: color var(--scrub-ease);
+}
+.scrub-text > span { padding: 0 0.5rem; white-space: nowrap; }
+.scrub[data-active] .scrub-text { color: var(--fg); }
+.scrub-value { text-align: right; font-variant-numeric: tabular-nums; }
+.scrub .scrub-text.scrub-occlude { color: transparent; z-index: 2; }
+.scrub-occlude > span { background: var(--surface); font-variant-numeric: tabular-nums; }
+.scrub-tip {
+  position: absolute;
+  top: -1.875rem;
+  left: calc(0.5rem + var(--h) * (100% - 1rem));
+  translate: -50% 4px;
+  padding: 0.125rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 60ms ease, translate 60ms ease;
+  z-index: 5;
+}
+.scrub-tip[data-show] { opacity: 1; translate: -50% 0; transition-duration: 100ms; }
+.scrub[data-variant="pips"] .scrub-tip { left: calc(0.5rem + 12px + var(--h) * (100% - 1rem - 24px)); }
+@media (prefers-reduced-motion: reduce) {
+  .scrub-row { transition: outline-color 100ms ease; }
+}
+
+/* ---------- Note: timeline figure ---------- */
+.note-timeline { display: grid; gap: 1rem; width: 100%; }
+.note-timeline-stage { display: grid; place-items: center; }
+.note-timeline-word {
+  font-size: 1.75rem;
+  color: var(--fg);
+  outline: 1px dashed color-mix(in srgb, var(--fg) 30%, transparent);
+  outline-offset: 0;
+}
+.note-timeline-word .roll-letter { transition: none; }
+.note-chart { position: relative; height: 8.5rem; }
+.note-chart svg { width: 100%; height: 100%; overflow: visible; }
+.note-chart path { fill: none; vector-effect: non-scaling-stroke; stroke-width: 1.25px; }
+.note-chart .c-in { stroke: var(--fg); }
+.note-chart .c-out { stroke: var(--faint); }
+.note-chart .c-grid { stroke: var(--line); stroke-width: 1px; }
+.note-playhead {
+  position: absolute;
+  inset-block: -0.25rem;
+  width: 1px;
+  background: color-mix(in srgb, var(--fg) 40%, transparent);
+  translate: -0.5px 0;
+}
+.note-ticks { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--faint); font-variant-numeric: tabular-nums; }
+.note-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.75rem; color: var(--faint); }
+.note-legend i { display: inline-block; width: 0.875rem; height: 0; border-top: 1.25px solid; vertical-align: middle; margin-right: 0.375rem; }
+.note-legend .l-in i { border-color: var(--fg); }
+.note-legend .l-out i { border-color: var(--faint); }
+.note-timeline-controls { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: center; }
+.note-play {
+  padding: 0.25rem 0.625rem;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, transform 150ms var(--ease-out-quint);
+}
+@media (hover: hover) and (pointer: fine) { .note-play:hover { color: var(--fg); background: var(--hover); } }
+.note-play:active { transform: scale(0.97); }
+.note-play:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+.note-body a:not(.note-back) { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; transition: text-decoration-color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .note-body a:not(.note-back):hover { text-decoration-color: var(--fg); } }
+.note-body ol { display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.25rem; list-style: decimal; }
+.note-body ol li::marker { color: var(--faint); font-variant-numeric: tabular-nums; }
+.note-timeline-word.roll { transition: none; }

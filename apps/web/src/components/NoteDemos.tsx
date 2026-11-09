@@ -1,5 +1,6 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { RollingText, type RollVariant } from './RollingText'
+import { Scrubber } from './Scrubber'
 
 const WORDS = ['Light', 'Dark', 'System']
 const SPEEDS = [
@@ -82,35 +83,6 @@ const EASES = [
 ]
 const DEFAULTS = { duration: 300, stagger: 18, travel: 70, blur: 2, ease: EASES[0].value }
 
-function Slider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  onChange,
-}: {
-  label: string
-  value: number
-  min: number
-  max: number
-  step: number
-  unit: string
-  onChange: (v: number) => void
-}) {
-  return (
-    <label className="note-slider">
-      <span>{label}</span>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} />
-      <output>
-        {value}
-        {unit}
-      </output>
-    </label>
-  )
-}
-
 /** The switch as it ships, with every timing exposed. */
 export function TweakDemo() {
   const [t, setT] = useState(DEFAULTS)
@@ -132,13 +104,19 @@ export function TweakDemo() {
         <Cycler speed={1} bounds={bounds} vars={vars} removeAfter={t.duration + t.stagger * 6 + 120} />
       </div>
       <div className="note-tweaks">
-        <Slider label="Duration" value={t.duration} min={100} max={1200} step={10} unit="ms" onChange={set('duration')} />
-        <Slider label="Stagger" value={t.stagger} min={0} max={80} step={1} unit="ms" onChange={set('stagger')} />
-        <Slider label="Travel" value={t.travel} min={0} max={140} step={5} unit="%" onChange={set('travel')} />
-        <Slider label="Blur" value={t.blur} min={0} max={10} step={0.5} unit="px" onChange={set('blur')} />
-        <div className="note-tweaks-row">
-          <Chips label="Curve" options={EASES} value={t.ease} onChange={set('ease')} />
-        </div>
+        <Scrubber label="Duration" value={t.duration} min={100} max={1200} step={10} format={(v) => `${v}ms`} onChange={set('duration')} />
+        <Scrubber label="Stagger" value={t.stagger} min={0} max={80} format={(v) => `${v}ms`} onChange={set('stagger')} />
+        <Scrubber label="Travel" value={t.travel} min={0} max={140} step={5} format={(v) => `${v}%`} onChange={set('travel')} />
+        <Scrubber label="Blur" value={t.blur} min={0} max={10} step={0.5} format={(v) => `${v}px`} onChange={set('blur')} />
+        <Scrubber
+          label="Curve"
+          variant="pips"
+          value={EASES.findIndex((e) => e.value === t.ease)}
+          min={0}
+          max={EASES.length - 1}
+          format={(i) => EASES[i].label}
+          onChange={(i) => set('ease')(EASES[i].value)}
+        />
         <div className="note-tweaks-row">
           <Chips
             label="Bounds"
@@ -154,6 +132,9 @@ export function TweakDemo() {
           </button>
         </div>
       </div>
+      <figcaption>
+        Every value it ships with. Drag a row, or focus it and use the arrow keys. Turn on Bounds to see the box.
+      </figcaption>
     </figure>
   )
 }
@@ -217,5 +198,189 @@ export function PromptBlock({ prompt }: { prompt: string }) {
         <code>{prompt}</code>
       </pre>
     </div>
+  )
+}
+
+/* ---------- Timeline: the roll frozen at any millisecond ---------- */
+
+/** cubic-bezier easing, solved for x by bisection. */
+function bezier(x1: number, y1: number, x2: number, y2: number) {
+  const at = (a: number, b: number, t: number) => 3 * a * t * (1 - t) ** 2 + 3 * b * t * t * (1 - t) + t ** 3
+  return (x: number) => {
+    if (x <= 0) return 0
+    if (x >= 1) return 1
+    let lo = 0
+    let hi = 1
+    let t = x
+    for (let i = 0; i < 24; i++) {
+      t = (lo + hi) / 2
+      if (at(x1, x2, t) < x) lo = t
+      else hi = t
+    }
+    return at(y1, y2, t)
+  }
+}
+const easeOut = bezier(0.23, 1, 0.32, 1)
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v))
+
+// The shipped values: in 300ms (fade 240ms), 18ms apart; out 200ms (fade 160ms), 12ms apart.
+const FROM = 'Dark'
+const TO = 'System'
+const END = 400
+const lettersIn = (i: number, ms: number) => ({
+  move: easeOut(clamp01((ms - 18 * i) / 300)),
+  fade: easeOut(clamp01((ms - 18 * i) / 240)),
+})
+const lettersOut = (i: number, ms: number) => ({
+  move: easeOut(clamp01((ms - 12 * i) / 200)),
+  fade: easeOut(clamp01((ms - 12 * i) / 160)),
+})
+
+const curvePath = (f: (ms: number) => number) => {
+  let d = ''
+  for (let ms = 0; ms <= END; ms += 2) d += `${ms ? 'L' : 'M'}${ms} ${100 - 100 * f(ms)}`
+  return d
+}
+const CURVES = {
+  in: [...TO].map((_, i) => curvePath((ms) => lettersIn(i, ms).move)),
+  out: [...FROM].map((_, i) => curvePath((ms) => 1 - lettersOut(i, ms).move)),
+}
+
+/** Dark → System, frozen at a chosen millisecond, over the curve of every letter. */
+export function TimelineDemo() {
+  const [t, setT] = useState(120)
+  const [playing, setPlaying] = useState(false)
+  const tRef = useRef(t)
+  tRef.current = t
+  const fromRef = useRef<HTMLSpanElement>(null)
+  const toRef = useRef<HTMLSpanElement>(null)
+  const [widths, setWidths] = useState<[number, number]>()
+
+  useLayoutEffect(() => {
+    const measure = () => setWidths([fromRef.current!.offsetWidth, toRef.current!.offsetWidth])
+    measure()
+    document.fonts?.ready.then(measure)
+  }, [])
+
+  // Play at ¼× speed from wherever the playhead is (or from 0 at the end).
+  useEffect(() => {
+    if (!playing) return
+    let raf = 0
+    let last = performance.now()
+    let cur = tRef.current
+    const tick = (now: number) => {
+      cur = Math.min(END, cur + (now - last) / 4)
+      last = now
+      setT(cur)
+      if (cur >= END) setPlaying(false)
+      else raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [playing])
+
+  const ms = Math.round(t)
+  const width = widths && widths[0] + (widths[1] - widths[0]) * easeOut(clamp01(t / 300))
+
+  return (
+    <figure className="note-figure">
+      <div className="note-stage">
+        <div className="note-timeline">
+          <div className="note-timeline-stage" aria-label={`Dark rolling to System, ${ms}ms in`} role="img">
+            <span className="roll note-timeline-word" style={{ width }}>
+              <span ref={fromRef} className="roll-word" aria-hidden>
+                {[...FROM].map((ch, i) => {
+                  const o = lettersOut(i, t)
+                  return (
+                    <span
+                      key={i}
+                      className="roll-letter"
+                      style={{ transform: `translateY(${-70 * o.move}%)`, opacity: 1 - o.fade, filter: `blur(${2 * o.fade}px)` }}
+                    >
+                      {ch}
+                    </span>
+                  )
+                })}
+              </span>
+              <span ref={toRef} className="roll-word" aria-hidden>
+                {[...TO].map((ch, i) => {
+                  const o = lettersIn(i, t)
+                  return (
+                    <span
+                      key={i}
+                      className="roll-letter"
+                      style={{
+                        transform: `translateY(${70 * (1 - o.move)}%)`,
+                        opacity: o.fade,
+                        filter: `blur(${2 * (1 - o.fade)}px)`,
+                      }}
+                    >
+                      {ch}
+                    </span>
+                  )
+                })}
+              </span>
+            </span>
+          </div>
+
+          <div>
+            <div className="note-chart" aria-hidden>
+              <svg viewBox="0 -2 400 104" preserveAspectRatio="none">
+                {[0, 100].map((y) => (
+                  <path key={y} className="c-grid" d={`M0 ${y}H400`} />
+                ))}
+                {CURVES.out.map((d, i) => (
+                  <path key={`o${i}`} className="c-out" d={d} />
+                ))}
+                {CURVES.in.map((d, i) => (
+                  <path key={`i${i}`} className="c-in" d={d} />
+                ))}
+              </svg>
+              <span className="note-playhead" style={{ left: `${(t / END) * 100}%` }} />
+            </div>
+            <div className="note-ticks" aria-hidden>
+              {[0, 100, 200, 300, 400].map((v) => (
+                <span key={v}>{v}ms</span>
+              ))}
+            </div>
+          </div>
+
+          <div className="note-legend">
+            <span className="l-in"><i />System arrives, 18ms apart</span>
+            <span className="l-out"><i />Dark leaves, 12ms apart</span>
+          </div>
+        </div>
+      </div>
+      <div className="note-timeline-controls">
+        <Scrubber
+          label="Time"
+          value={ms}
+          min={0}
+          max={END}
+          format={(v) => `${v}ms`}
+          onChange={(v) => {
+            setPlaying(false)
+            setT(v)
+          }}
+        />
+        <button
+          type="button"
+          className="note-play"
+          onClick={() => {
+            if (!playing && t >= END) {
+              tRef.current = 0
+              setT(0)
+            }
+            setPlaying((p) => !p)
+          }}
+        >
+          <RollingText text={playing ? 'Pause' : 'Play ¼×'} />
+        </button>
+      </div>
+      <figcaption>
+        Drag through the roll. Dark is gone by 236ms; System's last letter settles at 390ms. The width finishes
+        with the first letter, at 300ms.
+      </figcaption>
+    </figure>
   )
 }
