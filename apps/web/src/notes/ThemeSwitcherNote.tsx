@@ -1,18 +1,9 @@
 import type { ReactNode } from 'react'
-import { InterruptDemo, PromptBlock, ShakeDemo, TimelineDemo, TweakDemo } from '../components/NoteDemos'
+import { CodeBlock } from '../components/CodeBlock'
+import { InterruptDemo, ShakeDemo, TimelineDemo, TweakDemo } from '../components/NoteDemos'
 
 const C = ({ children }: { children: ReactNode }) => <code className="note-inline">{children}</code>
 
-function Code({ file, children }: { file: string; children: string }) {
-  return (
-    <div className="note-code">
-      <div className="note-code-file">{file}</div>
-      <pre>
-        <code>{children}</code>
-      </pre>
-    </div>
-  )
-}
 
 const TIMINGS = `.roll {
   --in: 300ms;        /* letters settle; opacity and blur take 80% of it */
@@ -95,7 +86,7 @@ export function ThemeSwitcherNote() {
         Leaving is two thirds of arriving: <C>200ms</C>, <C>12ms</C> apart. The old word should be out of the way before
         the new one asks to be read.
       </p>
-      <Code file="index.css">{TIMINGS}</Code>
+      <CodeBlock title="index.css" code={TIMINGS} />
       <p>Every timing is a variable, so the playground above drives the real component, not a copy.</p>
 
       <h2>Frame by frame</h2>
@@ -114,7 +105,7 @@ export function ThemeSwitcherNote() {
         So nothing is replayed. The current word stays mounted and flips a <C>data-out</C> attribute; the next word is
         added beside it and enters through <C>@starting-style</C>.
       </p>
-      <Code file="RollingText.tsx">{KEEP_MOUNTED}</Code>
+      <CodeBlock title="RollingText.tsx" code={KEEP_MOUNTED} />
       <InterruptDemo />
 
       <h2>Pin the words</h2>
@@ -134,7 +125,7 @@ export function ThemeSwitcherNote() {
         The page and the button should change theme together. For two frames every other transition is off, so colour
         flips at once and only the letters move.
       </p>
-      <Code file="ThemeToggle.tsx">{ONE_FRAME}</Code>
+      <CodeBlock title="ThemeToggle.tsx" code={ONE_FRAME} />
 
       <h2>Details</h2>
       <ul>
@@ -153,7 +144,7 @@ export function ThemeSwitcherNote() {
 
       <h2>Use it</h2>
       <p>To build this in your own product, give this prompt to your coding agent. It has every value from this page.</p>
-      <PromptBlock prompt={PROMPT} />
+      <CodeBlock title="Prompt" code={PROMPT} lang="prompt" />
 
       <h2>References</h2>
       <ul>

@@ -574,8 +574,8 @@ html {
   white-space: nowrap;
 }
 
-.note-code { border: 1px solid var(--line); border-radius: 0.75rem; overflow: hidden; background: var(--surface); }
-.note-code-file { padding: 0.5rem 0.875rem; font-size: 0.75rem; color: var(--faint); border-bottom: 1px solid var(--line); }
+.note-code { border-radius: 0.75rem; overflow: hidden; background: color-mix(in srgb, var(--fg) 4%, var(--bg)); }
+.note-code-file { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.875rem; font-size: 0.75rem; color: var(--faint); }
 .note-code pre {
   margin: 0;
   padding: 0.875rem;
@@ -594,8 +594,8 @@ html {
   min-height: 11rem;
   padding: 2rem 1rem;
   border-radius: 0.875rem;
-  background: var(--surface);
-  border: 1px solid var(--line);
+  /* a grey card, a step darker than the page (lighter in dark mode) */
+  background: color-mix(in srgb, var(--fg) 4%, var(--bg));
 }
 .note-figure figcaption { font-size: 0.875rem; color: var(--faint); text-wrap: pretty; }
 .note-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
@@ -612,9 +612,10 @@ html {
 @media (hover: hover) and (pointer: fine) { .note-chips button:hover { color: var(--fg); } }
 .note-chips button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
 
-.note-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; }
-.note-cycler { display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem; width: 9.5rem; justify-self: center; }
-.note-cycler-label { font-size: 0.75rem; color: var(--faint); align-self: flex-end; }
+/* two equal columns that may shrink below the cyclers' width, so the pair stays centred on phones */
+.note-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; width: 100%; }
+.note-cycler { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: 100%; max-width: 9.5rem; justify-self: center; }
+.note-cycler-label { font-size: 0.75rem; color: var(--faint); }
 .note-roll-button {
   font-size: 1.75rem;
   color: var(--fg);
@@ -627,10 +628,6 @@ html {
 .note-tweaks {
   display: grid;
   gap: 0.5rem;
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--line);
-  border-radius: 0.875rem;
-  background: var(--surface);
   font-size: 0.8125rem;
 }
 .note-tweaks-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.25rem; }
@@ -646,7 +643,6 @@ html {
 @media (hover: hover) and (pointer: fine) { .note-reset:not(:disabled):hover { color: var(--fg); background: var(--hover); } }
 .note-reset:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
 
-.note-prompt-head { display: flex; align-items: center; justify-content: space-between; }
 .note-copy {
   padding: 0.125rem 0.5rem;
   margin: -0.125rem -0.5rem -0.125rem 0;
@@ -657,7 +653,38 @@ html {
 }
 @media (hover: hover) and (pointer: fine) { .note-copy:hover { color: var(--fg); background: var(--hover); } }
 .note-copy:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
-.note-prompt { white-space: pre-wrap; font-size: 0.8125rem; max-height: 22rem; overflow: auto; }
+.note-code[data-lang="prompt"] pre { white-space: pre-wrap; max-height: 22rem; overflow: auto; }
+
+/* Syntax colours (CodeBlock + highlight.ts): muted hues that sit inside the grey palette */
+:root {
+  --syn-comment: var(--faint);
+  --syn-punct: var(--muted);
+  --syn-keyword: #8a3ffc;
+  --syn-string: #2f7d4f;
+  --syn-number: #b4580f;
+  --syn-prop: #1f63c7;
+  --syn-fn: #a3236b;
+  --syn-tag: #b42318;
+}
+:root[data-theme="dark"] {
+  --syn-keyword: #c4a3ff;
+  --syn-string: #7fd1a0;
+  --syn-number: #f5a65b;
+  --syn-prop: #82b4ff;
+  --syn-fn: #f08fc4;
+  --syn-tag: #ff8b7e;
+}
+.tok-comment { color: var(--syn-comment); font-style: italic; }
+.tok-keyword, .tok-at { color: var(--syn-keyword); }
+.tok-string { color: var(--syn-string); }
+.tok-number { color: var(--syn-number); }
+.tok-prop, .tok-var, .tok-attr { color: var(--syn-prop); }
+.tok-fn, .tok-selector { color: var(--syn-fn); }
+.tok-tag { color: var(--syn-tag); }
+.tok-heading { color: var(--fg); font-weight: 600; }
+.tok-marker { color: var(--syn-comment); }
+.tok-value { color: var(--syn-prop); }
+.note-code[data-lang="prompt"] pre { color: var(--muted); }
 
 /* ---------- Scrubber (slider row) ----------
    One registered number, --p (0–1), drives the fill, the handle line and the hover preview,
@@ -665,8 +692,9 @@ html {
    fill to the cursor. Pips sit 12px in from each edge: position(q) = 12px + q × (100% − 24px). */
 @property --p { syntax: "<number>"; inherits: true; initial-value: 0; }
 .scrub {
+  /* Sits straight on the page, not on a card: tint and occlusion mix from the page colour */
+  --surface: var(--bg);
   --scrub-fill: color-mix(in srgb, var(--fg) 7%, var(--surface));
-  --scrub-border: color-mix(in srgb, var(--fg) 13%, var(--surface));
   --scrub-ease: 100ms var(--ease-out-quint);
   position: relative;
   /* 8px of extra hit area past each edge; presses there clamp to min or max */
@@ -681,7 +709,7 @@ html {
 .scrub-row {
   position: relative;
   height: 2rem;
-  border: 1px solid var(--scrub-border);
+  border: 1px dotted color-mix(in srgb, var(--fg) 22%, var(--bg));
   border-radius: 0.5rem;
   background: var(--surface);
   overflow: hidden;
@@ -805,7 +833,7 @@ html {
   outline-offset: 0;
 }
 .note-timeline-word .roll-letter { transition: none; }
-.note-chart { position: relative; height: 8.5rem; }
+.note-chart { position: relative; height: 8.5rem; cursor: ew-resize; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .note-chart svg { width: 100%; height: 100%; overflow: visible; }
 .note-chart path { fill: none; vector-effect: non-scaling-stroke; stroke-width: 1.25px; }
 .note-chart .c-in { stroke: var(--fg); }
@@ -817,7 +845,14 @@ html {
   width: 1px;
   background: color-mix(in srgb, var(--fg) 40%, transparent);
   translate: -0.5px 0;
+  pointer-events: none;
+  transition: background-color 150ms ease;
 }
+/* a press eases the playhead to the cursor; a drag glues it there */
+.note-chart[data-easing] .note-playhead { transition: left 160ms var(--ease-out-quint), background-color 150ms ease; }
+.note-chart[data-dragging] .note-playhead,
+.note-chart:hover .note-playhead { background: var(--fg); }
+@media (prefers-reduced-motion: reduce) { .note-chart[data-easing] .note-playhead { transition: none; } }
 .note-ticks { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--faint); font-variant-numeric: tabular-nums; }
 .note-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.75rem; color: var(--faint); }
 .note-legend i { display: inline-block; width: 0.875rem; height: 0; border-top: 1.25px solid; vertical-align: middle; margin-right: 0.375rem; }

@@ -171,36 +171,6 @@ export function ShakeDemo() {
   )
 }
 
-/** Copyable prompt; the button label rolls Copy → Copied with the same component. */
-export function PromptBlock({ prompt }: { prompt: string }) {
-  const [copied, setCopied] = useState(false)
-  return (
-    <div className="note-code">
-      <div className="note-code-file note-prompt-head">
-        <span>Prompt</span>
-        <button
-          type="button"
-          className="note-copy"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(prompt)
-              setCopied(true)
-              setTimeout(() => setCopied(false), 1600)
-            } catch {
-              // clipboard blocked: the text is still selectable below
-            }
-          }}
-        >
-          <RollingText text={copied ? 'Copied' : 'Copy'} />
-        </button>
-      </div>
-      <pre className="note-prompt">
-        <code>{prompt}</code>
-      </pre>
-    </div>
-  )
-}
-
 /* ---------- Timeline: the roll frozen at any millisecond ---------- */
 
 /** cubic-bezier easing, solved for x by bisection. */
@@ -255,6 +225,12 @@ export function TimelineDemo() {
   const fromRef = useRef<HTMLSpanElement>(null)
   const toRef = useRef<HTMLSpanElement>(null)
   const [widths, setWidths] = useState<[number, number]>()
+  const [dragging, setDragging] = useState(false)
+  const [easing, setEasing] = useState(false)
+  const scrubTo = (e: React.PointerEvent<HTMLElement>) => {
+    const r = e.currentTarget.getBoundingClientRect()
+    setT(Math.round(clamp01((e.clientX - r.left) / r.width) * END))
+  }
 
   useLayoutEffect(() => {
     const measure = () => setWidths([fromRef.current!.offsetWidth, toRef.current!.offsetWidth])
@@ -324,7 +300,30 @@ export function TimelineDemo() {
           </div>
 
           <div>
-            <div className="note-chart" aria-hidden>
+            {/* Drag anywhere on the chart to scrub (the Time row below has the keyboard).
+                A press eases the playhead to the cursor; moving then glues it there. */}
+            <div
+              className="note-chart"
+              aria-hidden
+              data-easing={easing || undefined}
+              data-dragging={dragging || undefined}
+              onPointerDown={(e) => {
+                if (e.button !== 0) return
+                e.currentTarget.setPointerCapture(e.pointerId)
+                setPlaying(false)
+                setDragging(true)
+                setEasing(true)
+                scrubTo(e)
+              }}
+              onPointerMove={(e) => {
+                if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+                setEasing(false)
+                scrubTo(e)
+              }}
+              onPointerUp={() => setDragging(false)}
+              onPointerCancel={() => setDragging(false)}
+              onLostPointerCapture={() => setDragging(false)}
+            >
               <svg viewBox="0 -2 400 104" preserveAspectRatio="none">
                 {[0, 100].map((y) => (
                   <path key={y} className="c-grid" d={`M0 ${y}H400`} />
