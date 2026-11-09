@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react'
-import { parseRoute, pathFor, routeMeta, type Route } from './seo'
+import { NOT_FOUND, parseRoute, pathFor, routeMeta, type Route } from './seo'
 
 /** Tiny pathname router: pushState navigation + back/forward, no library needed for a few routes. */
 const listeners = new Set<() => void>()
@@ -23,9 +23,16 @@ export function navigate(route: Route, { replace = false } = {}) {
   if (pageChange) window.scrollTo(0, 0)
 }
 
+/** Path rendered at build time (scripts/prerender.ts); the browser always reads the real URL. */
+let serverPath = '/'
+export function setServerPath(path: string) {
+  serverPath = path
+}
+const getPath = () => (typeof window === 'undefined' ? serverPath : window.location.pathname)
+
 export function useRoute(): Route {
-  const pathname = useSyncExternalStore(subscribe, () => window.location.pathname)
-  return parseRoute(pathname) ?? { section: 'work', filter: 'all', home: true }
+  const pathname = useSyncExternalStore(subscribe, getPath, getPath)
+  return parseRoute(pathname) ?? NOT_FOUND
 }
 
 /** Keep <title> and the description in sync after client-side navigation. */
@@ -37,8 +44,8 @@ export function applyHead(route: Route) {
   document.querySelector('meta[property="og:description"]')?.setAttribute('content', description)
 }
 
-/** Old ?section=notes&tag=… links and unknown paths → the real route. */
-export function normalizeInitialUrl() {
+/** Old ?section=notes&tag=… links → the real route. Returns true if the URL changed. */
+export function normalizeInitialUrl(): boolean {
   const q = new URLSearchParams(window.location.search)
   if (q.has('section') || q.has('tag')) {
     const tag = q.get('tag')
@@ -46,7 +53,7 @@ export function normalizeInitialUrl() {
       ? parseRoute(tag ? `/notes/${tag === 'build-log' ? 'build-logs' : tag}` : '/notes') ?? { section: 'notes' as const, filter: 'all' as const }
       : { section: 'work' as const, filter: 'all' as const, home: true }
     window.history.replaceState(null, '', pathFor(legacy))
-  } else if (!parseRoute(window.location.pathname)) {
-    window.history.replaceState(null, '', '/')
+    return true
   }
+  return false
 }

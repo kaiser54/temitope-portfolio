@@ -8,7 +8,10 @@ import { NOTE_TAGS, explorations, notes, profile, projects, type NoteTag } from 
 export type Section = 'work' | 'explorations' | 'notes'
 export type NoteFilter = 'all' | NoteTag
 /** `home` marks the bare homepage (/), which shows Work but has its own URL and metadata. */
-export type Route = { section: Section; filter: NoteFilter; home?: boolean; note?: string }
+export type Route = { section: Section; filter: NoteFilter; home?: boolean; note?: string; notFound?: boolean }
+
+/** Any path that isn't a page. Served as 404.html with a 404 status. */
+export const NOT_FOUND: Route = { section: 'work', filter: 'all', notFound: true }
 
 export function parseRoute(pathname: string): Route | null {
   const path = pathname.replace(/\/+$/, '') || '/'
@@ -24,7 +27,8 @@ export function parseRoute(pathname: string): Route | null {
   return note ? { section: 'notes', filter: 'all', note: note.slug } : null
 }
 
-export function pathFor({ section, filter, home, note }: Route): string {
+export function pathFor({ section, filter, home, note, notFound }: Route): string {
+  if (notFound) return '/404'
   if (note) return `/notes/${note}`
   if (section === 'work') return home ? '/' : '/work'
   if (section === 'explorations') return '/explorations'
@@ -43,6 +47,9 @@ export const ALL_ROUTES: Route[] = [
 
 export function routeMeta(route: Route): { title: string; description: string } {
   const name = profile.name
+  if (route.notFound) {
+    return { title: `Page not found — ${name}`, description: `This page doesn't exist on ${name}'s site.` }
+  }
   if (route.note) {
     const n = notes.find((x) => x.slug === route.note)!
     return { title: `${n.title} — ${name}`, description: n.summary ?? n.title }

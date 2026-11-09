@@ -5,7 +5,7 @@ import { navigate } from '../router'
 const tagLabel = (t: NoteTag) => NOTE_TAGS.find((x) => x.value === t)?.label ?? t
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date(iso))
+  new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso))
 
 /** Filtered list of notes; the filter itself lives in the Notes tab (see SectionTabs). */
 export function Notes({ filter, items: visible }: { filter: NoteFilter; items: Note[] }) {

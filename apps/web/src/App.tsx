@@ -17,7 +17,17 @@ export function App() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-[600px] flex-col gap-16 px-6 pt-12 pb-20 font-sans text-[15px] leading-relaxed sm:pt-16 sm:pb-28">
-      {route.note ? (
+      {route.notFound ? (
+        <section className="enter flex flex-col gap-4" style={{ '--i': 0 } as CSSProperties}>
+          <h1 className="font-medium">Page not found</h1>
+          <p className="text-muted">
+            There's nothing at this address.{' '}
+            <a className="link-dotted" href="/">
+              Go to the homepage
+            </a>
+          </p>
+        </section>
+      ) : route.note ? (
         <NotePage key={route.note} slug={route.note} />
       ) : (
       <>
@@ -79,7 +89,7 @@ export function App() {
       >
         <FooterString />
         <div className="flex items-center justify-between gap-4 pt-6">
-          <p>© {new Date().getFullYear()} {profile.name}</p>
+          <p suppressHydrationWarning>© {new Date().getFullYear()} {profile.name}</p>
           <ThemeToggle />
         </div>
       </footer>

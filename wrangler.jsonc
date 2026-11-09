@@ -14,7 +14,7 @@
     "directory": "./apps/web/dist",
     // /notes → notes.html, /notes/writing → notes/writing.html (prerendered pages)
     "html_handling": "auto-trailing-slash",
-    // any other path falls back to index.html so the client router handles it
-    "not_found_handling": "single-page-application"
+    // every page is prerendered, so any other path is a real 404 (dist/404.html)
+    "not_found_handling": "404-page"
   }
 }

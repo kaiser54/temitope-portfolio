@@ -9,7 +9,7 @@ const BODIES: Record<string, () => ReactNode> = {
 }
 
 const formatDate = (iso: string) =>
-  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(iso))
+  new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso))
 
 export function NotePage({ slug }: { slug: string }) {
   const note = notes.find((n) => n.slug === slug)

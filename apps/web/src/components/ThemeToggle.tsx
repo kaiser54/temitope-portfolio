@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { RollingText } from './RollingText'
 
 type Theme = 'light' | 'dark' | 'system'
@@ -32,7 +32,14 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(readTheme)
+  // The prerendered HTML can't know the saved theme, so start on 'light' to match it, then read the
+  // real one before first paint. `ready` remounts the label so that first change doesn't animate.
+  const [theme, setTheme] = useState<Theme>('light')
+  const [ready, setReady] = useState(false)
+  useLayoutEffect(() => {
+    setTheme(readTheme())
+    setReady(true)
+  }, [])
 
   // Follow the OS while on "system".
   useEffect(() => {
@@ -60,7 +67,7 @@ export function ThemeToggle() {
         setTheme(next)
       }}
     >
-      <RollingText text={LABEL[theme]} />
+      <RollingText key={ready ? 'ready' : 'initial'} text={LABEL[theme]} />
     </button>
   )
 }

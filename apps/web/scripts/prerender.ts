@@ -5,6 +5,10 @@
  *   dist/index.html                → /
  *   dist/notes.html                → /notes
  *   dist/notes/<tag-slug>.html     → /notes/writing, /notes/build-logs
+ *   dist/404.html                  → any other path (served with a 404 status)
+ *
+ * Each file also contains the page's rendered HTML (from the SSR build of src/entry-server.tsx),
+ * so crawlers and link previews see the content without running JavaScript.
  *
  * Flat files + `cleanUrls` (vercel.json) serve /notes without a trailing slash or redirect.
  *
@@ -15,7 +19,9 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { contact, notes, profile } from '../src/content.ts'
-import { ALL_ROUTES, pathFor, routeMeta } from '../src/seo.ts'
+import { ALL_ROUTES, NOT_FOUND, pathFor, routeMeta } from '../src/seo.ts'
+// @ts-expect-error built by `vite build --ssr` just before this script runs
+import { render } from '../dist-server/entry-server.js'
 
 const dist = join(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 const template = readFileSync(join(dist, 'index.html'), 'utf8')
@@ -23,7 +29,7 @@ const site = (process.env.SITE_URL || 'https://temitopeagboola.com').replace(/\/
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;')
 
-for (const route of ALL_ROUTES) {
+for (const route of [...ALL_ROUTES, NOT_FOUND]) {
   const path = pathFor(route)
   const { title, description } = routeMeta(route)
   // /work shows the same content as the homepage, so it points search engines at /.
@@ -46,8 +52,8 @@ for (const route of ALL_ROUTES) {
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:creator" content="@kaiser_major" />`,
-    `<link rel="canonical" href="${url}" />`,
-    `<meta property="og:url" content="${url}" />`,
+    route.notFound ? `<meta name="robots" content="noindex" />` : `<link rel="canonical" href="${url}" />`,
+    !route.notFound && `<meta property="og:url" content="${url}" />`,
     note?.date && `<meta property="article:published_time" content="${note.date}" />`,
     jsonLd && `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`,
   ].filter(Boolean)
@@ -56,6 +62,7 @@ for (const route of ALL_ROUTES) {
     .replace(/<title>[\s\S]*?<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/<meta\s+name="description"[\s\S]*?\/>/, `<meta name="description" content="${esc(description)}" />`)
     .replace('</head>', `    ${tags.join('\n    ')}\n  </head>`)
+    .replace('<div id="root"></div>', () => `<div id="root">${render(path)}</div>`)
 
   const out = path === '/' ? join(dist, 'index.html') : join(dist, `${path.slice(1)}.html`)
   mkdirSync(dirname(out), { recursive: true })
