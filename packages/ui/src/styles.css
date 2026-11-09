@@ -8,42 +8,11 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Base UI accordion: animate height using the measured panel height */
-.ui-accordion-panel {
-  height: var(--accordion-panel-height);
-  overflow: hidden;
-  transition: height 280ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1));
-}
-.ui-accordion-panel[data-starting-style],
-.ui-accordion-panel[data-ending-style] {
-  height: 0;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ui-accordion-panel { transition: none; }
-}
+/* Accordion panel: height is a Motion spring (accordion.tsx); this only clips the content */
+.ui-accordion-panel { overflow: hidden; }
 
-/* Hover card: scales from its trigger, quick in, quicker out */
-.ui-hover-card {
-  transform-origin: var(--transform-origin);
-  transition:
-    opacity 180ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1)),
-    transform 180ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1)),
-    filter 180ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1));
-}
-.ui-hover-card[data-starting-style],
-.ui-hover-card[data-ending-style] {
-  opacity: 0;
-  transform: scale(0.96);
-  filter: blur(2px);
-}
-.ui-hover-card[data-ending-style] {
-  transition-duration: 120ms;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ui-hover-card { transition: opacity 120ms ease; transform: none; filter: none; }
-  .ui-hover-card[data-starting-style],
-  .ui-hover-card[data-ending-style] { transform: none; filter: none; }
-}
+/* Hover card: scales from its trigger. Open / close is a Motion spring (hover-card.tsx). */
+.ui-hover-card { transform-origin: var(--transform-origin); }
 
 /* Select */
 .ui-select-trigger {
@@ -75,17 +44,9 @@
   box-shadow: var(--shadow);
   font-size: 0.875rem;
   outline: none;
+  /* open / close is Motion (the app renders the popup as an m.div) */
   transform-origin: var(--transform-origin);
-  transition:
-    opacity 160ms var(--ease-out-quint, ease-out),
-    transform 160ms var(--ease-out-quint, ease-out);
 }
-.ui-select-popup[data-starting-style],
-.ui-select-popup[data-ending-style] {
-  opacity: 0;
-  transform: scale(0.96);
-}
-.ui-select-popup[data-ending-style] { transition-duration: 100ms; }
 
 .ui-select-item {
   display: flex;
@@ -103,8 +64,4 @@
 .ui-select-item[data-selected] { color: var(--fg, #27272a); }
 .ui-select-check { display: grid; color: var(--fg, #27272a); }
 
-@media (prefers-reduced-motion: reduce) {
-  .ui-select-popup { transition: opacity 120ms ease; }
-  .ui-select-popup[data-starting-style],
-  .ui-select-popup[data-ending-style] { transform: none; }
-}
+

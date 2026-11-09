@@ -170,17 +170,11 @@ html {
   box-shadow: var(--ring-inset);
   opacity: 0;
   pointer-events: none;
-  transition:
-    transform 220ms var(--ease-out-quint),
-    height 220ms var(--ease-out-quint),
-    opacity 150ms ease;
+  /* top + height are springs (Projects.tsx); only the fade is CSS */
+  transition: opacity 150ms ease;
 }
 .row-highlight[data-visible] { opacity: 1; }
 .row-highlight[data-focus] { box-shadow: var(--ring-inset), 0 0 0 2px var(--fg); }
-.row-highlight[data-snap] { transition: opacity 150ms ease; }
-@media (prefers-reduced-motion: reduce) {
-  .row-highlight { transition: opacity 150ms ease; }
-}
 /* Keyboard focus ring is drawn on the shared card highlight instead (see .row-highlight[data-focus]) */
 .ui-accordion-trigger:focus-visible {
   outline: none;
@@ -189,26 +183,28 @@ html {
 .project-item {
   position: relative;
 }
-.ui-accordion-trigger .icon {
-  transition: transform 220ms var(--ease-out-quint);
-}
-.ui-accordion-trigger[data-panel-open] .icon {
-  transform: rotate(45deg);
-}
+.ui-accordion-trigger .icon { display: grid; } /* plus → × turn is a Motion spring (Projects.tsx) */
 
 @media (prefers-reduced-motion: reduce) {
   .enter { animation: none; }
-  .ui-accordion-trigger,
-  .ui-accordion-trigger .icon { transition: none; }
+  .ui-accordion-trigger { transition: none; }
 }
 
 /* Inline company chip in the intro.
    Mark is hidden at rest and grows in on hover / focus / while its card is open. */
 .company {
+  position: relative;
   color: var(--fg);
   font-weight: 500;
   white-space: nowrap;
   border-radius: 0.375rem;
+}
+/* Invisible hit area: the hover (and its card) starts a little before the pointer reaches the
+   name. Kept to 4px vertically so it never reaches into the lines above and below. */
+.company::before {
+  content: "";
+  position: absolute;
+  inset: -4px -6px;
 }
 .company-mark {
   display: inline-grid;
@@ -431,8 +427,6 @@ html {
 }
 .tab-chevron:active { transform: scale(0.92); }
 .tab-chevron:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
-.tab-chevron svg { transition: rotate 200ms var(--ease-out-quint); }
-.tab-chevron[data-popup-open] svg { rotate: 180deg; }
 
 .section-tab sup { margin-left: 0.125rem; font-size: 0.6875rem; top: -0.5em; }
 
@@ -460,50 +454,15 @@ html {
 .tab-panels a, .tab-panels img { -webkit-user-drag: none; }
 .is-swiping, .is-swiping * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
 .tab-panels > .tab-panel { grid-area: 1 / 1; min-width: 0; }
-.tab-panel {
-  --swipe: 28px;
-  transition:
-    opacity 260ms var(--ease-out-quint),
-    transform 340ms var(--ease-out-quint),
-    filter 260ms var(--ease-out-quint);
-}
-.tab-panel[data-starting-style] { opacity: 0; filter: blur(3px); }
-.tab-panel[data-starting-style][data-activation-direction="right"] { transform: translateX(var(--swipe)); }
-.tab-panel[data-starting-style][data-activation-direction="left"] { transform: translateX(calc(var(--swipe) * -1)); }
-/* arriving after a swipe gesture: lands with a small overshoot */
-.swipe-commit .tab-panel:not([data-ending-style]) {
-  transition:
-    opacity 260ms var(--ease-out-quint),
-    transform 560ms cubic-bezier(0.34, 1.45, 0.64, 1),
-    filter 260ms var(--ease-out-quint);
-}
-/* leaving: quicker, and it never blocks the incoming panel */
-.tab-panel[data-ending-style] {
-  opacity: 0;
-  filter: blur(3px);
-  pointer-events: none;
-  transition-duration: 180ms, 220ms, 180ms;
-}
-.tab-panel[data-ending-style][data-activation-direction="right"] { transform: translateX(calc(var(--swipe) * -1)); }
-.tab-panel[data-ending-style][data-activation-direction="left"] { transform: translateX(var(--swipe)); }
+/* Panel enter / exit and the swipe are driven by Motion (SectionTabs' TabPanel, useSwipeTabs). */
 .tab-panel:focus-visible { outline: none; }
 
 /* Notes rows */
-@keyframes notes-in {
-  from { opacity: 0; transform: translateY(3px); filter: blur(2px); }
-}
-.notes-list { animation: notes-in 220ms var(--ease-out-quint) both; }
 .note-row[aria-disabled] { cursor: default; }
 @media (hover: hover) and (pointer: fine) {
   .note-link:hover .font-medium { text-decoration: underline; text-decoration-color: var(--faint); text-underline-offset: 3px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .tab-panel { transition: opacity 150ms ease; }
-  .tab-panel[data-starting-style],
-  .tab-panel[data-ending-style] { transform: none !important; filter: none; }
-  .notes-list { animation: fade-in 150ms ease both; }
-}
 
 /* Company preview image in hover cards: placeholder tint, then a quick fade once decoded */
 .og-image {
@@ -512,6 +471,10 @@ html {
   transition: opacity 200ms ease;
 }
 .og-image[data-loaded] { opacity: 1; }
+
+/* Avatar: an invisible 8px hit area around the photo (an <img> can't carry it, so its wrapper does) */
+.avatar-hit { position: relative; display: block; width: fit-content; }
+.avatar-hit::before { content: ""; position: absolute; inset: -8px; border-radius: 9999px; }
 
 /* Avatar: hairline ring so the photo's dark edges hold their shape on both themes */
 .avatar {
@@ -594,9 +557,22 @@ html {
   min-height: 11rem;
   padding: 2rem 1rem;
   border-radius: 0.875rem;
-  /* a grey card, a step darker than the page (lighter in dark mode) */
-  background: color-mix(in srgb, var(--fg) 4%, var(--bg));
+  /* a grey card, half a step darker than the page (lighter in dark mode), so demos keep their own surfaces */
+  background: color-mix(in srgb, var(--fg) 2%, var(--bg));
 }
+/* Ask AI demo: room above the letter for the popover */
+.note-askai-stage { padding-top: 10rem; padding-bottom: 2rem; }
+/* Wider than the text column on larger screens, so the 528px editor sits inside the card with room around it */
+@media (min-width: 46rem) {
+  .note-figure-wide { margin-inline: -4rem; }
+  .note-figure-wide figcaption { padding-inline: 4rem; }
+}
+@media (min-width: 60rem) {
+  .note-figure-wide { margin-inline: -8rem; }
+  .note-figure-wide figcaption { padding-inline: 8rem; }
+}
+.note-askai { width: 100%; max-width: 528px; }
+.note-askai-fallback { height: 301px; border-radius: 24px; background: hsla(0, 0%, 94%, 1); }
 .note-figure figcaption { font-size: 0.875rem; color: var(--faint); text-wrap: pretty; }
 .note-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
 .note-chips { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; }

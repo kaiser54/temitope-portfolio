@@ -1,58 +1,35 @@
+import type { MotionValue } from 'motion/react'
+import { animate } from '../animate'
 import { useRef, type MouseEvent, type PointerEvent } from 'react'
+import { rest, springs } from '../motion'
 
 /**
  * Horizontal swipe between tab panels (touch, pen and mouse).
  * - Direction lock: a gesture that starts mostly vertical is left to the page (scrolling).
  * - The active panel follows the finger with heavy rubber-band resistance (stiffer with no tab that way).
  * - Release past ~22% of the width (finger travel), or flick faster than ~0.35px/ms, to switch.
- * - Letting go without switching springs back with a small bounce.
+ * - Letting go without switching springs back with a small bounce (Motion spring, keeps velocity).
  * - A drag never turns into a click on whatever it started on.
+ *
+ * The panel's drag offset is a Motion value owned by the panel (see SectionTabs' TabPanel); its
+ * opacity is derived from it, so springing back fades it in for free.
  */
 // Same heavy feel as the footer string: the content moves much less than the finger.
 const heavy = (d: number) => Math.sign(d) * 0.9 * Math.abs(d) ** 0.68 // 40 → ~11px, 200 → ~33px
 const heavier = (d: number) => Math.sign(d) * 0.6 * Math.abs(d) ** 0.6 // no tab that way: stiffer still
 
-const springs = new WeakMap<HTMLElement, number>()
-const stopSpring = (panel: HTMLElement) => cancelAnimationFrame(springs.get(panel) ?? 0)
-
-/** Spring the panel back to 0 with a little overshoot (bounce), then clear inline styles. */
-function springBack(panel: HTMLElement, from: number) {
-  stopSpring(panel)
-  const k = 420
-  const c = 15 // low damping → visible bounce
-  let x = from
-  let v = 0
-  let last = performance.now()
-  panel.style.transition = 'opacity 220ms ease'
-  panel.style.opacity = ''
-  const step = (now: number) => {
-    let dt = Math.min((now - last) / 1000, 1 / 30)
-    last = now
-    while (dt > 0) {
-      const h = Math.min(dt, 1 / 240)
-      v += (-k * x - c * v) * h
-      x += v * h
-      dt -= h
-    }
-    if (Math.abs(x) < 0.05 && Math.abs(v) < 0.05) {
-      panel.style.transform = ''
-      panel.style.transition = ''
-      return
-    }
-    panel.style.transform = `translateX(${x}px)`
-    springs.set(panel, requestAnimationFrame(step))
-  }
-  springs.set(panel, requestAnimationFrame(step))
-}
-
 export function useSwipeTabs({
+  panel,
   canGo,
   go,
   onDrag,
   onRelease,
 }: {
+  /** drag offset of the panel currently on screen */
+  panel: () => MotionValue<number> | null
   canGo: (dir: 1 | -1) => boolean
-  go: (dir: 1 | -1) => void
+  /** switch tab; `thrown` means it came from a swipe (the panels use a springier landing) */
+  go: (dir: 1 | -1, thrown: boolean) => void
   /** finger distance while dragging horizontally (negative = toward the next tab) */
   onDrag?: (rawX: number) => void
   /** gesture ended without switching */
@@ -62,28 +39,24 @@ export function useSwipeTabs({
     id: number
     x0: number
     y0: number
-    dx: number
     raw: number
     v: number
     lastX: number
     lastT: number
     axis: 'x' | 'y' | null
-    panel: HTMLElement | null
+    x: MotionValue<number> | null
     width: number
   } | null>(null)
   const swallowClick = useRef(false)
   /** window listeners for the current gesture, so a release anywhere always ends it */
   const unlisten = useRef<(() => void) | null>(null)
 
-  const activePanel = (root: HTMLElement) =>
-    root.querySelector<HTMLElement>('.tab-panel:not([data-ending-style]):not([hidden])')
-
   const end = (cancelled: boolean) => {
     unlisten.current?.()
     unlisten.current = null
     const d = drag.current
     drag.current = null
-    if (!d || d.axis !== 'x' || !d.panel) return
+    if (!d || d.axis !== 'x' || !d.x) return
     document.documentElement.classList.remove('is-swiping')
     swallowClick.current = true
     setTimeout(() => (swallowClick.current = false), 0)
@@ -92,20 +65,12 @@ export function useSwipeTabs({
     // decide on the finger's travel (not the resisted offset), so heavy feel ≠ harder to switch
     const far = Math.abs(d.raw) > d.width * 0.22
     const flick = Math.abs(d.v) > 0.35 && Math.sign(d.v) === Math.sign(d.raw)
-    const panel = d.panel
 
     if (!cancelled && (far || flick) && canGo(dir)) {
-      // carry on in the thrown direction while the next tab slides in from the other side
-      panel.style.transition = 'transform 220ms var(--ease-out-quint), opacity 180ms ease'
-      panel.style.transform = `translateX(${d.dx - dir * 48}px)`
-      panel.style.opacity = '0'
-      // incoming panel lands with a small bounce
-      const root = document.documentElement
-      root.classList.add('swipe-commit')
-      setTimeout(() => root.classList.remove('swipe-commit'), 700)
-      go(dir)
+      // The panel keeps its drag offset and is thrown on by its exit animation.
+      go(dir, true)
     } else {
-      springBack(panel, d.dx)
+      animate(d.x, 0, { ...springs.release, ...rest })
       onRelease?.()
     }
   }
@@ -118,13 +83,12 @@ export function useSwipeTabs({
         id: e.pointerId,
         x0: e.clientX,
         y0: e.clientY,
-        dx: 0,
         raw: 0,
         v: 0,
         lastX: e.clientX,
         lastT: e.timeStamp,
         axis: null,
-        panel: null,
+        x: null,
         width: e.currentTarget.getBoundingClientRect().width,
       }
       // Release anywhere (even outside the content, before the drag "locks") ends the gesture;
@@ -154,26 +118,22 @@ export function useSwipeTabs({
         if (Math.hypot(rawX, rawY) < 8) return
         d.axis = Math.abs(rawX) > Math.abs(rawY) * 1.2 ? 'x' : 'y'
         if (d.axis === 'y') return void (drag.current = null) // let the page scroll
-        d.panel = activePanel(e.currentTarget)
-        if (!d.panel) return void (drag.current = null)
+        d.x = panel()
+        if (!d.x) return void (drag.current = null)
         e.currentTarget.setPointerCapture(e.pointerId)
-        stopSpring(d.panel) // grabbing mid-bounce picks it up where it is
-        d.panel.style.transition = 'none'
+        d.x.stop() // grabbing mid-bounce picks it up where the finger is
         document.documentElement.classList.add('is-swiping')
         window.getSelection()?.removeAllRanges()
       }
 
       const dir: 1 | -1 = rawX < 0 ? 1 : -1
-      const dx = canGo(dir) ? heavy(rawX) : heavier(rawX)
       d.raw = rawX
       onDrag?.(canGo(dir) ? rawX : rawX * 0.3)
       const dt = Math.max(e.timeStamp - d.lastT, 1)
       d.v = (e.clientX - d.lastX) / dt
       d.lastX = e.clientX
       d.lastT = e.timeStamp
-      d.dx = dx
-      d.panel!.style.transform = `translateX(${dx}px)`
-      d.panel!.style.opacity = String(1 - Math.min(Math.abs(dx) / 120, 1) * 0.35)
+      d.x!.jump(canGo(dir) ? heavy(rawX) : heavier(rawX))
     },
     onPointerUp() {
       end(false)

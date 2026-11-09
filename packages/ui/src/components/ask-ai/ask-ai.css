@@ -1,0 +1,296 @@
+/*
+ * Ship's letter input + "Ask AI" popover.
+ * Design: Figma "Daash Restaurant", section "AI - For text" (26310:3529).
+ * Behaviour: Ship web app, src/components/LetterInput. Light theme only, as designed.
+ */
+.ask-ai {
+  /* tokens (Figma variables, with Ship's names) */
+  --ask-backgrounds: #f0f0f0;
+  --ask-backgrounds-on-canvas: #fff;
+  --ask-text: #070707;
+  --ask-text-secondary: #595959;
+  --ask-text-tertiary: #8d8d8d;
+  --ask-popover: #090909; /* backgrounds-canvas (dark) */
+  --ask-popover-field: #212121; /* backgrounds (dark) */
+  --ask-highlight: #c8c7ff;
+  --ask-hover: #e6e6e6;
+  --ask-tracking: 0.1px;
+  /* Shadow/Shadow__XSmall */
+  --ask-shadow-xsmall: 0px 2px 2px 0px rgba(7, 7, 7, 0.03);
+
+  position: relative;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--ask-text);
+  text-align: left;
+}
+:where(.ask-ai) *,
+:where(.ask-ai) *::before,
+:where(.ask-ai) *::after { box-sizing: border-box; }
+/* zero-specificity resets so every component class below wins */
+:where(.ask-ai) button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+:where(.ask-ai) p, :where(.ask-ai) h4 { margin: 0; }
+:where(.ask-ai) img { display: block; max-width: none; }
+/* Shield from host page text rules (e.g. a blog's p { text-wrap: pretty }) */
+.ask-ai p, .ask-ai h4 { text-wrap: wrap; }
+
+/* Type: Micro/Medium (12/18, 500) */
+.ask-ai-micro { font-size: 12px; line-height: 18px; font-weight: 500; letter-spacing: var(--ask-tracking); }
+
+/* SiteButton: active:scale-95 */
+.ask-ai-press { transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), background-color 150ms ease, color 150ms ease; }
+.ask-ai-press:active:not(:disabled) { transform: scale(0.95); }
+
+/* ---------- Component 35: bg #f0f0f0, p-8, gap-8, r-24 ---------- */
+.ask-ai-root {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 24px;
+  background: var(--ask-backgrounds);
+}
+
+/* Header: label (secondary) + 24px expand button */
+.ask-ai-header { display: flex; align-items: center; justify-content: space-between; padding-left: 16px; }
+.ask-ai-label { color: var(--ask-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ask-ai-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 80px;
+}
+@media (hover: hover) { .ask-ai-icon-button:hover { background: var(--ask-hover); } }
+
+/* AI-input: white, p-16, r-16, xsmall shadow. Body Small/Regular 14/21. */
+.ask-ai-field {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--ask-backgrounds-on-canvas);
+  box-shadow: var(--ask-shadow-xsmall);
+  cursor: text;
+  overflow: hidden;
+}
+.ask-ai-editor-row { display: grid; position: relative; gap: 16px; grid-template-columns: 1fr; }
+.ask-ai-editor-row[data-empty] { grid-template-columns: 1fr auto; }
+.ask-ai-editor {
+  min-height: 21px;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 14px;
+  line-height: 21px;
+  font-weight: 400;
+  letter-spacing: var(--ask-tracking);
+  color: var(--ask-text);
+}
+.ask-ai-editor p { margin: 0; }
+/* The highlight is drawn by .ask-ai-highlight, so the native one would double it. */
+.ask-ai-editor ::selection,
+.ask-ai-editor::selection { background-color: transparent; }
+
+.ask-ai-voice {
+  position: relative;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin: -4px -8px -4px 0;
+  border-radius: 999px;
+}
+@media (hover: hover) { .ask-ai-voice:hover { background: var(--ask-backgrounds); } }
+
+/* Footer: counts (tertiary, gap-8) + Clear (h-24, px-12) */
+.ask-ai-footer { display: flex; align-items: center; justify-content: space-between; padding-left: 16px; }
+.ask-ai-counts { display: flex; align-items: flex-start; gap: 8px; color: var(--ask-text-tertiary); white-space: nowrap; }
+.ask-ai-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 0 12px;
+  border-radius: 100px;
+  color: var(--ask-text-tertiary) !important;
+}
+@media (hover: hover) { .ask-ai-clear:hover { background: var(--ask-hover); } }
+
+/* ---------- Selection: solid #c8c7ff behind the text ---------- */
+.ask-ai-highlight {
+  position: absolute;
+  z-index: 40;
+  pointer-events: none;
+  background: var(--ask-highlight);
+  mix-blend-mode: multiply;
+}
+
+/* ---------- Tooltip (popover) ---------- */
+/* overflow-anchor: Chrome anchors scrolling on the focused editable element (the Ask AI input). As the popover
+   grows upward that element moves, and Chrome scrolled the page to follow it. Opt the popover out. */
+.ask-ai-anchor { position: absolute; z-index: 50; transform: translate(-50%, -100%); overflow-anchor: none; }
+/* cards-shadow-large, applied to the bubble and its arrow together */
+.ask-ai-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  filter: drop-shadow(0px 32px 16px rgba(44, 49, 55, 0.2)) drop-shadow(0px 16px 8px rgba(44, 49, 55, 0.04))
+    drop-shadow(0px 8px 4px rgba(44, 49, 55, 0.04)) drop-shadow(0px 4px 2px rgba(44, 49, 55, 0.04))
+    drop-shadow(0px 2px 1px rgba(44, 49, 55, 0.04)) drop-shadow(0px 1px 0.5px rgba(44, 49, 55, 0.04));
+}
+/* bg #090909, p-4, r-16 (a pill at 32px tall), overlaps the arrow by 6px */
+.ask-ai-popover {
+  position: relative;
+  max-width: 90vw;
+  margin-bottom: -6px;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--ask-popover);
+  overflow: hidden;
+  outline: none;
+  color: #fff;
+}
+/* Polygon 1: 18×13 frame, rotated 180°, glyph inset as in Figma */
+.ask-ai-arrow { position: relative; width: 18px; height: 13px; transform: rotate(180deg); pointer-events: none; }
+.ask-ai-arrow img { position: absolute; top: 4.63%; bottom: 25%; left: 12.69%; right: 12.69%; width: auto; height: auto; }
+.ask-ai-size { overflow: hidden; }
+.ask-ai-measure { position: relative; display: flex; flex-direction: column; }
+
+/* Actions + tones: h-24, px-8 (Ask AI px-12), white Micro/Medium */
+.ask-ai-row { position: relative; display: flex; align-items: center; }
+.ask-ai-chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 1000px;
+  color: #fff;
+  white-space: nowrap;
+  transition: scale 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.ask-ai-chip[data-wide] { padding: 0 12px; }
+.ask-ai-chip:active { scale: 0.98; }
+.ask-ai-chip-pill { position: absolute; inset: 0; border-radius: 1000px; background: rgb(255 255 255 / 0.1); }
+.ask-ai-chip-label { position: relative; z-index: 10; }
+.ask-ai .ask-ai-chip p { white-space: nowrap; color: #fff; }
+.ask-ai .ask-ai-chip p[data-gradient] {
+  background-image: linear-gradient(-62.4deg, #66d0f7 11.396%, #feefc4 33.303%, #e38af6 98.093%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.ask-ai-tones { display: flex; align-items: center; gap: 4px; }
+.ask-ai-back-chip { width: 24px; padding: 0; background: var(--ask-popover-field); }
+.ask-ai-tone-track { position: relative; flex: 1; min-width: 0; }
+.ask-ai-tone-scroll {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  padding: 0 8px;
+}
+.ask-ai-tone-scroll::-webkit-scrollbar { display: none; }
+.ask-ai-tone-fade { position: absolute; top: 0; bottom: 0; width: 20px; pointer-events: none; }
+.ask-ai-tone-fade[data-side='left'] { left: 0; background: linear-gradient(to right, #090909 0%, transparent 100%); }
+.ask-ai-tone-fade[data-side='right'] { right: 0; background: linear-gradient(to left, #090909 0%, transparent 100%); }
+
+/* Loader: label px-12, white 24px stop button with a 16px stop icon */
+.ask-ai-loader { display: flex; align-items: center; justify-content: space-between; }
+.ask-ai-shimmer {
+  display: inline-block;
+  margin-left: 12px;
+  color: transparent;
+  -webkit-background-clip: text;
+  background-clip: text;
+  background-size: 250% 100%, auto;
+  background-repeat: no-repeat, padding-box;
+  white-space: nowrap;
+}
+.ask-ai-stop {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 100px;
+  background: #fff;
+}
+
+/* Input: 372 wide, field h-70 #212121 r-12 p-8, 12/18 regular white */
+.ask-ai-input-view { display: flex; flex-direction: column; gap: 4px; }
+.ask-ai-input-host {
+  width: 100%;
+  min-height: 70px;
+  max-height: 15vh;
+  overflow: auto;
+  overscroll-behavior: none;
+  border-radius: 12px;
+  background: var(--ask-popover-field);
+  box-shadow: var(--ask-shadow-xsmall);
+  scrollbar-width: none;
+}
+.ask-ai-input-host::-webkit-scrollbar { display: none; }
+.ask-ai-input {
+  position: relative;
+  min-height: 70px;
+  padding: 8px;
+  outline: none;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 400;
+  letter-spacing: var(--ask-tracking);
+  color: #fff;
+  caret-color: #fff;
+  cursor: text;
+}
+.ask-ai-input[data-empty]::before {
+  content: attr(data-placeholder);
+  position: absolute;
+  pointer-events: none;
+  background-image: linear-gradient(to right, #a8a8a8 0%, #6d6d6d 51.923%, #a8a8a8 92.788%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Button row: p-4 on #090909, so the 24px buttons sit in a 32px strip */
+.ask-ai-input-actions { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 4px; }
+.ask-ai-input-group { display: flex; align-items: center; gap: 8px; }
+.ask-ai-round {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 1000px;
+}
+.ask-ai-round[data-tone='dark'] { background: var(--ask-popover-field); }
+.ask-ai-round[data-tone='light'] { background: #fff; }
+.ask-ai-pill-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 12px 0 8px;
+  border-radius: 1000px;
+  white-space: nowrap;
+}
+.ask-ai-pill-button[data-tone='dark'] { background: var(--ask-popover-field); color: #fff; }
+.ask-ai-pill-button[data-tone='light'] { background: #fff; color: #000; }
+.ask-ai-pill-button:disabled { opacity: 0.4; cursor: default; }
+/* Send stays solid white while empty (Figma "Make it better" state); it just doesn't respond. */
+.ask-ai-round:disabled { cursor: default; }

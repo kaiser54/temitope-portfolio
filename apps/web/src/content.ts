@@ -199,6 +199,13 @@ export type Note = {
 /** Writing and build logs. Notes without a date show as "Soon". */
 export const notes: Note[] = [
   {
+    title: 'Highlight, then ask AI',
+    slug: 'ask-ai',
+    tags: ['build-log'],
+    // draft: add a date when it's written
+    summary: 'The selection popover in Ship’s letter editor: positioning, view changes and streaming the reply in.',
+  },
+  {
     title: 'Rolling a theme switcher, letter by letter',
     slug: 'theme-switcher',
     tags: ['build-log'],

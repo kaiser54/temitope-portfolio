@@ -1,11 +1,13 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { NOTE_TAGS, notes } from '../content'
 import { navigate } from '../router'
+import { AskAiNote } from '../notes/AskAiNote'
 import { ThemeSwitcherNote } from '../notes/ThemeSwitcherNote'
 
 /** Note bodies by slug. */
 const BODIES: Record<string, () => ReactNode> = {
   'theme-switcher': ThemeSwitcherNote,
+  'ask-ai': AskAiNote,
 }
 
 const formatDate = (iso: string) =>
@@ -35,7 +37,7 @@ export function NotePage({ slug }: { slug: string }) {
           <h1 className="font-medium text-pretty">{note.title}</h1>
           <p className="text-faint">
             {note.date && <time dateTime={note.date}>{formatDate(note.date)}</time>}
-            {tags && ` · ${tags}`}
+            {tags && `${note.date ? ' · ' : ''}${tags}`}
           </p>
         </div>
       </header>

@@ -1,3 +1,4 @@
+import { animate } from '../animate'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { RollingText, type RollVariant } from './RollingText'
 import { Scrubber } from './Scrubber'
@@ -238,21 +239,17 @@ export function TimelineDemo() {
     document.fonts?.ready.then(measure)
   }, [])
 
-  // Play at ¼× speed from wherever the playhead is (or from 0 at the end).
+  // Play at ¼× speed from wherever the playhead is (or from 0 at the end): a linear tween of t.
   useEffect(() => {
     if (!playing) return
-    let raf = 0
-    let last = performance.now()
-    let cur = tRef.current
-    const tick = (now: number) => {
-      cur = Math.min(END, cur + (now - last) / 4)
-      last = now
-      setT(cur)
-      if (cur >= END) setPlaying(false)
-      else raf = requestAnimationFrame(tick)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
+    const from = tRef.current
+    const controls = animate(from, END, {
+      duration: ((END - from) * 4) / 1000,
+      ease: 'linear',
+      onUpdate: setT,
+      onComplete: () => setPlaying(false),
+    })
+    return () => controls.stop()
   }, [playing])
 
   const ms = Math.round(t)

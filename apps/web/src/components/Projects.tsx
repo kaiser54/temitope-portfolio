@@ -1,7 +1,10 @@
 import { Plus } from 'lucide-react'
-import { useEffect, useRef, type FocusEvent, type PointerEvent } from 'react'
+import { m, useMotionValue } from 'motion/react'
+import { animate } from '../animate'
+import { useEffect, useRef, useState, type FocusEvent, type PointerEvent } from 'react'
 import { AccordionItem, AccordionPanel, AccordionRoot, AccordionTrigger } from '@repo/ui'
 import type { Project } from '../content'
+import { prefersReducedMotion, springs } from '../motion'
 
 /** "2023—26" → 2026, "2024" → 2024. Projects are grouped by the latest year worked on. */
 const endYear = (range: string) => {
@@ -20,9 +23,13 @@ function groupByYear(items: Project[]) {
 }
 
 export function Projects({ items }: { items: Project[] }) {
+  const [open, setOpen] = useState<string[]>([])
   const listRef = useRef<HTMLDivElement>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
   const activeRef = useRef<HTMLElement | null>(null)
+  // The highlight's top and height, sprung together so it glides between rows of different heights.
+  const y = useMotionValue(0)
+  const height = useMotionValue(0)
 
   /** Slide the shared highlight onto a row. `snap` places it without sliding. */
   const moveTo = (row: HTMLElement, snap = false, focus?: boolean) => {
@@ -36,18 +43,14 @@ export function Projects({ items }: { items: Project[] }) {
     // First appearance: fade in at the row instead of sliding in from the top.
     const list = listRef.current!.getBoundingClientRect()
     const r = row.getBoundingClientRect()
-    // Horizontal placement is pure CSS (pinned to the project column); JS only sets top + height.
-    const place = () => {
-      hl.style.transform = `translateY(${r.top - list.top}px)`
-      hl.style.height = `${r.height}px`
-    }
-    if (snap || !('visible' in hl.dataset)) {
-      hl.dataset.snap = ''
-      place()
-      void hl.offsetHeight // commit position before re-enabling the slide
-      delete hl.dataset.snap
+    // Horizontal placement is pure CSS (pinned to the project column); Motion sets top + height.
+    const top = r.top - list.top
+    if (snap || !('visible' in hl.dataset) || prefersReducedMotion()) {
+      y.jump(top)
+      height.jump(r.height)
     } else {
-      place()
+      animate(y, top, springs.glide)
+      animate(height, r.height, springs.glide)
     }
     hl.dataset.visible = ''
   }
@@ -131,18 +134,26 @@ export function Projects({ items }: { items: Project[] }) {
         if (!e.currentTarget.contains(e.relatedTarget as Node | null)) hide()
       }}
     >
-      <div ref={highlightRef} aria-hidden className="row-highlight" />
-      <AccordionRoot className="gap-6 sm:gap-4">
+      <m.div ref={highlightRef} aria-hidden className="row-highlight" style={{ y, height }} />
+      <AccordionRoot className="gap-6 sm:gap-4" value={open} onValueChange={(v) => setOpen(v as string[])}>
         {groupByYear(items).map(([year, group]) => (
           <div key={year} className="flex flex-col sm:grid sm:grid-cols-[var(--year-col)_1fr]">
             <h3 className="pb-1 text-sm text-faint tabular-nums sm:pt-[0.7rem] sm:pb-0">{year}</h3>
             <div className="flex flex-col">
               {group.map((p) => (
-                <AccordionItem key={p.name} className="project-item" onPointerEnter={onPointerEnter}>
+                <AccordionItem key={p.name} value={p.name} className="project-item" onPointerEnter={onPointerEnter}>
                   <AccordionTrigger onFocus={onFocus} onClick={(e) => pinRow(e.currentTarget)}>
                     <span className="font-medium">{p.name}</span>
                     <span className="min-w-0 flex-1 truncate text-muted">{p.kind}</span>
-                    <Plus aria-hidden className="icon shrink-0 self-center text-faint" size={14} strokeWidth={1.5} />
+                    <m.span
+                      aria-hidden
+                      className="icon shrink-0 self-center text-faint"
+                      initial={false}
+                      animate={{ rotate: open.includes(p.name) ? 45 : 0 }}
+                      transition={springs.turn}
+                    >
+                      <Plus size={14} strokeWidth={1.5} />
+                    </m.span>
                   </AccordionTrigger>
                   <AccordionPanel>
                     <div className="flex flex-col gap-3 pt-1 pb-5 text-muted">

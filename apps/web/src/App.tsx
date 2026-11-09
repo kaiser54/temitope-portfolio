@@ -7,6 +7,7 @@ import { FooterString } from './components/FooterString'
 import { SectionTabs } from './components/SectionTabs'
 import { NotePage } from './components/NotePage'
 import { applyHead, useRoute } from './router'
+import { MotionProvider } from './motion'
 
 const visibleContact = contact.filter((g) => !g.hidden)
 
@@ -16,6 +17,7 @@ export function App() {
   useEffect(() => applyHead(route), [route.section, route.filter, route.home, route.note])
 
   return (
+    <MotionProvider>
     <main className="mx-auto flex min-h-dvh max-w-[600px] flex-col gap-16 px-6 pt-12 pb-20 font-sans text-[15px] leading-relaxed sm:pt-16 sm:pb-28">
       {route.notFound ? (
         <section className="enter flex flex-col gap-4" style={{ '--i': 0 } as CSSProperties}>
@@ -33,13 +35,15 @@ export function App() {
       <>
       <header className="enter flex flex-col gap-6" style={{ '--i': 0 } as CSSProperties}>
         <div>
-          <img
-            src="/avatar.jpg"
-            alt={profile.name}
-            width={40}
-            height={40}
-            className="avatar mb-4 size-10 rounded-full object-cover"
-          />
+          <span className="avatar-hit mb-4">
+            <img
+              src="/avatar.jpg"
+              alt={profile.name}
+              width={40}
+              height={40}
+              className="avatar size-10 rounded-full object-cover"
+            />
+          </span>
           <h1 className="font-medium">{profile.name}</h1>
           <p className="text-muted">
             {profile.role} · {profile.location} · <LocalTime timeZone={profile.timeZone} />
@@ -94,5 +98,6 @@ export function App() {
         </div>
       </footer>
     </main>
+    </MotionProvider>
   )
 }
