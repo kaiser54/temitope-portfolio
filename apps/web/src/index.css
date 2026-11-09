@@ -472,36 +472,37 @@ html {
 }
 .og-image[data-loaded] { opacity: 1; }
 
-/* Avatar: an invisible 8px hit area around the photo (an <img> can't carry it, so its wrapper does) */
+/* Avatar: an invisible 20px hit area around the photo (an <img> can't carry it, so its wrapper does) */
 .avatar-hit { position: relative; display: block; width: fit-content; cursor: grab; touch-action: none; }
 @media (prefers-reduced-motion: reduce) { .avatar-hit { cursor: auto; } }
 
-/* "Tap to drop" hint beside the avatar (components/AvatarHint.tsx): a thought-bubble trail into a pill */
-.avatar-hint { position: absolute; left: 0; top: 0; pointer-events: none; --hint: #5550e8; }
-.avatar-hint-dot { position: absolute; border-radius: 9999px; background: var(--hint); }
-.avatar-hint-dot[data-size="lg"] { width: 10px; height: 10px; left: 32px; top: 29px; box-shadow: 0 0 0 2px var(--bg); }
-.avatar-hint-dot[data-size="sm"] { width: 6px; height: 6px; left: 46px; top: 22px; }
-.avatar-hint-pill {
+/* "Tap to drop" hint (components/AvatarHint.tsx): a callout pointing at the avatar,
+   in the page's own ink (inverted), so it reads as part of the site */
+.avatar-hint { position: absolute; inset: 0; pointer-events: none; }
+.avatar-hint-callout {
   position: absolute;
-  left: 56px;
-  top: 4px;
+  left: 52px;
+  top: 50%;
+  margin-top: -14px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
-  padding: 0 14px 0 11px;
-  border-radius: 9999px;
+  height: 28px;
+  padding: 0 10px 0 9px;
+  border-radius: 8px;
   white-space: nowrap;
   font-size: 13px;
   font-weight: 500;
   line-height: 1;
-  color: #fff;
-  background: linear-gradient(100deg, #4f46e5 0%, #5c59ed 55%, #6e6bf2 100%);
-  box-shadow: 0 6px 16px -6px rgb(79 70 229 / 0.55), inset 0 1px 0 rgb(255 255 255 / 0.18);
+  color: var(--bg);
+  background: var(--fg);
+  box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.25);
   pointer-events: auto;
   cursor: pointer;
 }
-.avatar-hint-pill:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.avatar-hint-callout:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+/* the pointer: same ink as the callout, aimed at the avatar */
+.avatar-hint-tail { position: absolute; left: -5px; top: 8px; color: var(--fg); }
 .avatar-hint-hand { display: grid; }
 
 /* ---------- Avatar catapult (components/catapult.ts) ---------- */
@@ -517,8 +518,8 @@ html {
   touch-action: none;
   will-change: transform;
 }
-/* Large invisible grab area (120px across) on the flying copy only; the avatar in the header keeps its own. */
-.catapult-ball::before { content: ""; position: absolute; inset: -40px; border-radius: 9999px; }
+/* Large invisible grab area (220px across) on the flying copy only; the avatar in the header keeps its own. */
+.catapult-ball::before { content: ""; position: absolute; inset: -90px; border-radius: 9999px; }
 .catapult-ball-photo {
   position: relative;
   display: block;
@@ -539,7 +540,7 @@ html {
 /* the real words stay in the page (and in React's DOM), just invisible while their copies fly */
 ::highlight(catapult-scattered) { color: transparent; }
 .is-slinging, .is-slinging * { user-select: none; -webkit-user-select: none; cursor: grabbing !important; }
-.avatar-hit::before { content: ""; position: absolute; inset: -8px; border-radius: 9999px; }
+.avatar-hit::before { content: ""; position: absolute; inset: -20px; border-radius: 9999px; }
 
 /* Avatar: hairline ring so the photo's dark edges hold their shape on both themes */
 .avatar {
