@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { contact, profile } from './content'
 import { Company } from './components/Company'
 import { LocalTime } from './components/LocalTime'
@@ -6,6 +6,8 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { FooterString } from './components/FooterString'
 import { SectionTabs } from './components/SectionTabs'
 import { NotePage } from './components/NotePage'
+import { dropCatapult, preloadCatapult, startCatapult } from './components/catapultTrigger'
+import { AvatarHint, markAvatarHintSeen } from './components/AvatarHint'
 import { applyHead, useRoute } from './router'
 import { MotionProvider } from './motion'
 
@@ -13,12 +15,18 @@ const visibleContact = contact.filter((g) => !g.hidden)
 
 export function App() {
   const route = useRoute()
+  const avatarRef = useRef<HTMLImageElement>(null)
+  const [hint, setHint] = useState(true)
+  const usedAvatar = () => {
+    setHint(false)
+    markAvatarHintSeen()
+  }
   // <title> + description for every route (home, sections, filters, notes)
   useEffect(() => applyHead(route), [route.section, route.filter, route.home, route.note])
 
   return (
     <MotionProvider>
-    <main className="mx-auto flex min-h-dvh max-w-[600px] flex-col gap-16 px-6 pt-12 pb-20 font-sans text-[15px] leading-relaxed sm:pt-16 sm:pb-28">
+    <main className="mx-auto flex min-h-dvh max-w-[600px] flex-col gap-16 px-6 pt-12 pb-14 font-sans text-[15px] leading-relaxed sm:pt-16 sm:pb-22">
       {route.notFound ? (
         <section className="enter flex flex-col gap-4" style={{ '--i': 0 } as CSSProperties}>
           <h1 className="font-medium">Page not found</h1>
@@ -35,13 +43,30 @@ export function App() {
       <>
       <header className="enter flex flex-col gap-6" style={{ '--i': 0 } as CSSProperties}>
         <div>
-          <span className="avatar-hit mb-4">
+          {/* Drag the avatar onto the footer line, pull back and let go (components/catapult.ts) */}
+          <span
+            className="avatar-hit mb-4"
+            onPointerEnter={() => void preloadCatapult()}
+            onPointerDown={(e) => {
+              usedAvatar()
+              startCatapult(e, avatarRef.current)
+            }}
+          >
             <img
+              ref={avatarRef}
+              draggable={false}
               src="/avatar.jpg"
               alt={profile.name}
               width={40}
               height={40}
               className="avatar size-10 rounded-full object-cover"
+            />
+            <AvatarHint
+              show={hint}
+              onDrop={() => {
+                usedAvatar()
+                dropCatapult(avatarRef.current)
+              }}
             />
           </span>
           <h1 className="font-medium">{profile.name}</h1>

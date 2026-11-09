@@ -4,8 +4,8 @@ import type { ComponentProps } from 'react'
 
 const cx = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ')
 
-/** Height spring for opening / closing a panel. No bounce: content shouldn't jiggle. */
-const FOLD: Transition = { type: 'spring', visualDuration: 0.3, bounce: 0 }
+/** Opening / closing a panel: quick and plain (280ms ease-out-quint). Bounce is for gestures, not content. */
+const FOLD: Transition = { duration: 0.28, ease: [0.23, 1, 0.32, 1] }
 
 export function AccordionRoot({ className, ...props }: ComponentProps<typeof Base.Root>) {
   return <Base.Root className={cx('flex flex-col', className as string)} {...props} />
@@ -30,9 +30,9 @@ export function AccordionTrigger({
 }
 
 /**
- * Panel whose height is a Motion spring (interruptible, starts from wherever it is).
+ * Panel whose height is animated by Motion (interruptible, starts from wherever it is).
  * It stays mounted: Base UI would hide it as soon as its own (CSS) transition ends, which a
- * main-thread spring isn't, so a closed panel is `inert` and 0px tall instead of `hidden`.
+ * main-thread Motion animation isn't, so a closed panel is `inert` and 0px tall instead of `hidden`.
  * Needs a LazyMotion provider above it (the app's MotionProvider).
  */
 export function AccordionPanel({

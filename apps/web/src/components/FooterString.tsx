@@ -18,8 +18,23 @@ const MID = H / 2
 // 40px → ~11px, 200px → ~33px, 400px → ~53px
 const rubber = (d: number) => Math.sign(d) * 0.9 * Math.abs(d) ** 0.68
 
+/**
+ * Lets something other than a pointer hold the string (the avatar catapult, ./catapult.ts):
+ * `line()` is where the line sits on screen, `hold()` pins it at a point with a bend, `release()`
+ * lets it go with the usual twang.
+ */
+export type StringHandle = {
+  line(): { left: number; right: number; y: number } | null
+  hold(clientX: number, bendPx: number): void
+  /** let go; `velocity` (px/s, + = down) carries the bend's motion into the twang */
+  release(velocity?: number): void
+}
+let handle: StringHandle | null = null
+export const footerString = () => handle
+
 export function FooterString() {
   const pathRef = useRef<SVGPathElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
   const bend = useMotionValue(0)
   const s = useRef({ gx: 500, dragging: false, startY: 0 })
 
@@ -45,7 +60,27 @@ export function FooterString() {
 
   useEffect(() => {
     draw()
-    return () => bend.stop()
+    const toGx = (clientX: number, box: DOMRect) =>
+      Math.min(Math.max(((clientX - box.left) / box.width) * 1000, 40), 960)
+    handle = {
+      line: () => {
+        const box = svgRef.current?.getBoundingClientRect()
+        return box ? { left: box.left, right: box.right, y: box.top + (box.height * MID) / H } : null
+      },
+      hold: (clientX, bendPx) => {
+        const box = svgRef.current?.getBoundingClientRect()
+        if (!box) return
+        s.current.gx = toGx(clientX, box)
+        bend.jump(bendPx) // pinned to whatever is pulling it, no lag
+        draw()
+      },
+      release: (velocity = 0) =>
+        animate(bend, 0, { ...(prefersReducedMotion() ? springs.settle : springs.pluck), ...rest, velocity }),
+    }
+    return () => {
+      bend.stop()
+      handle = null
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -80,7 +115,7 @@ export function FooterString() {
 
   return (
     <div className="footer-string" aria-hidden>
-      <svg viewBox={`0 0 1000 ${H}`} preserveAspectRatio="none" height={H}>
+      <svg ref={svgRef} viewBox={`0 0 1000 ${H}`} preserveAspectRatio="none" height={H}>
         <path ref={pathRef} vectorEffect="non-scaling-stroke" />
         {/* generous invisible grab band around the line */}
         <rect

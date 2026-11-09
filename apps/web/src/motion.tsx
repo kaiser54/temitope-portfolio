@@ -51,8 +51,6 @@ export const springs = {
   arrive: { type: 'spring', visualDuration: 0.34, bounce: 0.12 } as Transition,
   /** Shared row highlight sliding between projects */
   glide: { type: 'spring', visualDuration: 0.24, bounce: 0.15 } as Transition,
-  /** Accordion height: no bounce, content shouldn't jiggle */
-  fold: { type: 'spring', visualDuration: 0.3, bounce: 0 } as Transition,
   /** Small icons turning (plus → ×, chevron) */
   turn: { type: 'spring', visualDuration: 0.25, bounce: 0.35 } as Transition,
   /** Popovers (select menu, hover card) opening */
