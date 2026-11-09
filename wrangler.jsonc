@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "temitope-portfolio",
+  "compatibility_date": "2026-11-01",
+  "assets": {
+    "directory": "./apps/web/dist",
+    // /notes → notes.html, /notes/writing → notes/writing.html (prerendered pages)
+    "html_handling": "auto-trailing-slash",
+    // any other path falls back to index.html so the client router handles it
+    "not_found_handling": "single-page-application"
+  }
+}
