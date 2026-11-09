@@ -70,6 +70,49 @@ export function Projects({ items }: { items: Project[] }) {
     return () => ro.disconnect()
   }, [])
 
+  /**
+   * Opening a project closes the one above it, and that collapse would drag the clicked row
+   * up the page. Pin the row where it was clicked: whenever the closing project shrinks,
+   * scroll up by the same amount.
+   *
+   * The correction runs in a ResizeObserver, not requestAnimationFrame: observers fire after
+   * layout but before paint, so the scroll lands in the same frame as the shift and the row
+   * never paints out of place. A rAF loop reads last frame's layout and corrects a frame late,
+   * which shows up as a stutter.
+   */
+  const anchorStop = useRef<(() => void) | null>(null)
+  const pinRow = (trigger: HTMLElement) => {
+    anchorStop.current?.()
+    // Only pin when the project that's closing sits above the clicked row and has scrolled
+    // (partly) off the top. If it's fully on screen, the reader watches it fold away and the
+    // rows rising to meet it reads naturally; pinning there would scroll the page under them.
+    const item = trigger.closest('.project-item')
+    const open = listRef.current?.querySelector<HTMLElement>('.project-item:has([data-panel-open])')
+    if (!item || !open || open === item) return
+    const above = open.compareDocumentPosition(item) & Node.DOCUMENT_POSITION_FOLLOWING
+    if (!above || open.getBoundingClientRect().top >= 0) return
+    // Compensate exactly the height the closing project loses (it sits wholly above the row),
+    // rather than chasing the row's position. That never fights the reader's own scrolling,
+    // including trackpad momentum still arriving after the click, so nothing has to cancel it.
+    let lastHeight = open.getBoundingClientRect().height
+    const ro = new ResizeObserver(() => {
+      const height = open.getBoundingClientRect().height
+      const lost = lastHeight - height
+      lastHeight = height
+      if (lost !== 0) window.scrollTo({ top: window.scrollY - lost, behavior: 'instant' })
+    })
+    ro.observe(open)
+    // Safety net: the panel transition is 280ms; stop well after it has settled.
+    const timeout = window.setTimeout(() => stop(), 600)
+    const stop = () => {
+      ro.disconnect()
+      window.clearTimeout(timeout)
+      anchorStop.current = null
+    }
+    anchorStop.current = stop
+  }
+  useEffect(() => () => anchorStop.current?.(), [])
+
   // Target the whole item (row + open panel), so an open project highlights as one card.
   const onPointerEnter = (e: PointerEvent<HTMLElement>) => {
     if (e.pointerType === 'mouse') moveTo(e.currentTarget, false, false)
@@ -80,7 +123,7 @@ export function Projects({ items }: { items: Project[] }) {
   }
 
   return (
-    <div ref={listRef} className="relative [--year-col:0px] sm:[--year-col:4.5rem]" onPointerLeave={() => {
+    <div ref={listRef} className="relative [overflow-anchor:none] [--year-col:0px] sm:[--year-col:4.5rem]" onPointerLeave={() => {
         // Keep the card (and its focus ring) if a row has keyboard focus.
         if (!listRef.current?.querySelector(':focus-visible')) hide()
       }}
@@ -96,7 +139,7 @@ export function Projects({ items }: { items: Project[] }) {
             <div className="flex flex-col">
               {group.map((p) => (
                 <AccordionItem key={p.name} className="project-item" onPointerEnter={onPointerEnter}>
-                  <AccordionTrigger onFocus={onFocus}>
+                  <AccordionTrigger onFocus={onFocus} onClick={(e) => pinRow(e.currentTarget)}>
                     <span className="font-medium">{p.name}</span>
                     <span className="min-w-0 flex-1 truncate text-muted">{p.kind}</span>
                     <Plus aria-hidden className="icon shrink-0 self-center text-faint" size={14} strokeWidth={1.5} />
