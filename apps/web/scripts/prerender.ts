@@ -27,11 +27,20 @@ for (const route of ALL_ROUTES) {
   const { title, description } = routeMeta(route)
   const url = site ? `${site}${path === '/' ? '/' : path}` : null
 
+  // Share image (public/og.png, 1200×630). Link previews need an absolute URL, so it's only
+  // fully reliable once SITE_URL is set; without it a root-relative path is used as a fallback.
+  const image = `${site ?? ''}/og.png`
   const tags = [
     `<meta property="og:type" content="website" />`,
+    `<meta property="og:site_name" content="Temitope Agboola" />`,
     `<meta property="og:title" content="${esc(title)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
-    `<meta name="twitter:card" content="summary" />`,
+    `<meta property="og:image" content="${image}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="Temitope Agboola, Frontend &amp; Product Engineer" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:image" content="${image}" />`,
     url && `<link rel="canonical" href="${url}" />`,
     url && `<meta property="og:url" content="${url}" />`,
   ].filter(Boolean)
