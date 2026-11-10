@@ -127,13 +127,6 @@ export function grabAvatar(img: HTMLImageElement, clientX: number, clientY: numb
   start()
 }
 
-/** Let it fall from where it sits (the "Tap to drop" hint). */
-export function dropAvatar(img: HTMLImageElement) {
-  const r = img.getBoundingClientRect()
-  grabAvatar(img, r.left + r.width / 2, r.top + r.height / 2)
-  letGo()
-}
-
 // ---- input ---------------------------------------------------------------------------------------
 
 function listen() {

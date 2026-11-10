@@ -473,10 +473,21 @@ html {
 .og-image[data-loaded] { opacity: 1; }
 
 /* Avatar: an invisible 20px hit area around the photo (an <img> can't carry it, so its wrapper does) */
-.avatar-hit { position: relative; display: block; width: fit-content; cursor: grab; touch-action: none; }
+.avatar-hit {
+  position: relative;
+  display: block;
+  width: fit-content;
+  cursor: grab;
+  touch-action: none;
+  -webkit-touch-callout: none; /* no iOS image menu on a long press */
+  user-select: none;
+}
+/* Holding: the avatar sinks over the hold (HOLD_MS in catapultTrigger.ts), springs back if let go early */
+.avatar-hit .avatar { transition: scale 220ms var(--ease-out-quint); }
+.avatar-hit[data-holding] .avatar { scale: 0.88; transition: scale 450ms cubic-bezier(0.3, 0, 0.4, 1); }
 @media (prefers-reduced-motion: reduce) { .avatar-hit { cursor: auto; } }
 
-/* "Tap to drop" hint (components/AvatarHint.tsx): a callout pointing at the avatar,
+/* "Hold to drop" hint (components/AvatarHint.tsx): a callout pointing at the avatar,
    in the page's own ink (inverted), so it reads as part of the site */
 .avatar-hint { position: absolute; inset: 0; pointer-events: none; }
 .avatar-hint-callout {
@@ -497,10 +508,7 @@ html {
   color: var(--bg);
   background: var(--fg);
   box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.25);
-  pointer-events: auto;
-  cursor: pointer;
 }
-.avatar-hint-callout:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 /* the pointer: same ink as the callout, aimed at the avatar */
 .avatar-hint-tail { position: absolute; left: -5px; top: 8px; color: var(--fg); }
 .avatar-hint-hand { display: grid; }

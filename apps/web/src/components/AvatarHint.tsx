@@ -17,10 +17,11 @@ function TapHand() {
 }
 
 /**
- * "Tap to drop": a callout beside the avatar pointing at it, hinting at the catapult (components/catapult.ts).
- * Client-only (never in the prerendered HTML), shown until the avatar is first used, then remembered. `show` lets the parent hide it the moment the avatar is pressed.
+ * "Hold to drop": a callout beside the avatar pointing at it, hinting at the catapult (components/catapult.ts).
+ * Just a label (pressing and holding the avatar is the action). Client-only (never in the prerendered HTML),
+ * shown until the avatar is first released, then remembered. `show` lets the parent hide it at that moment.
  */
-export function AvatarHint({ show, onDrop }: { show: boolean; onDrop: () => void }) {
+export function AvatarHint({ show }: { show: boolean }) {
   const [eligible, setEligible] = useState(false)
   useEffect(() => {
     let seen = false
@@ -38,30 +39,28 @@ export function AvatarHint({ show, onDrop }: { show: boolean; onDrop: () => void
     <AnimatePresence>
       {eligible && show && (
         <span className="avatar-hint" key="hint">
-          <m.button
-            type="button"
+          <m.span
             className="avatar-hint-callout"
             style={{ originX: 0, originY: 0.5 }}
             initial={{ opacity: 0, x: -6, scale: 0.94 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -4, scale: 0.96, transition: { duration: 0.12 } }}
             transition={{ type: 'spring', visualDuration: 0.35, bounce: 0.3 }}
-            onPointerDown={(e) => e.stopPropagation()} // don't start a drag on the avatar underneath
-            onClick={onDrop}
           >
             <svg className="avatar-hint-tail" width="6" height="12" viewBox="0 0 6 12" aria-hidden>
               <path d="M6 0v12L1.06 7.06a1.5 1.5 0 0 1 0-2.12Z" fill="currentColor" />
             </svg>
+            {/* press, hold, let go: the same rhythm as the gesture */}
             <m.span
               aria-hidden
               className="avatar-hint-hand"
-              animate={{ scale: [1, 0.8, 1], y: [0, 1.5, 0] }}
-              transition={{ duration: 0.5, times: [0, 0.35, 1], repeat: Infinity, repeatDelay: 1.9, delay: 0.8 }}
+              animate={{ scale: [1, 0.8, 0.8, 1], y: [0, 1.5, 1.5, 0] }}
+              transition={{ duration: 1.1, times: [0, 0.18, 0.78, 1], repeat: Infinity, repeatDelay: 1.4, delay: 0.8 }}
             >
               <TapHand />
             </m.span>
-            Tap to drop
-          </m.button>
+            Hold to drop
+          </m.span>
         </span>
       )}
     </AnimatePresence>

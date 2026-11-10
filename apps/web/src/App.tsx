@@ -6,7 +6,7 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { FooterString } from './components/FooterString'
 import { SectionTabs } from './components/SectionTabs'
 import { NotePage } from './components/NotePage'
-import { dropCatapult, preloadCatapult, startCatapult } from './components/catapultTrigger'
+import { preloadCatapult, startCatapult } from './components/catapultTrigger'
 import { AvatarHint, markAvatarHintSeen } from './components/AvatarHint'
 import { applyHead, useRoute } from './router'
 import { MotionProvider } from './motion'
@@ -53,10 +53,9 @@ export function App() {
           <span
             className="avatar-hit mb-4"
             onPointerEnter={() => void preloadCatapult()}
-            onPointerDown={(e) => {
-              usedAvatar()
-              startCatapult(e, avatarRef.current)
-            }}
+            // press and hold to release it (components/catapultTrigger.ts); the hint goes once it's done
+            onPointerDown={(e) => startCatapult(e, avatarRef.current, usedAvatar)}
+            onContextMenu={(e) => e.preventDefault()}
           >
             <img
               ref={avatarRef}
@@ -67,13 +66,7 @@ export function App() {
               height={40}
               className="avatar size-10 rounded-full object-cover"
             />
-            <AvatarHint
-              show={hint}
-              onDrop={() => {
-                usedAvatar()
-                dropCatapult(avatarRef.current)
-              }}
-            />
+            <AvatarHint show={hint} />
           </span>
           <h1 className="font-medium">{profile.name}</h1>
           <p className="text-muted">
