@@ -6,7 +6,7 @@ import { ThemeToggle } from './components/ThemeToggle'
 import { FooterString } from './components/FooterString'
 import { SectionTabs } from './components/SectionTabs'
 import { NotePage } from './components/NotePage'
-import { preloadCatapult, startCatapult } from './components/catapultTrigger'
+import { readyAvatar, startCatapult } from './components/catapultTrigger'
 import { AvatarHint, markAvatarHintSeen } from './components/AvatarHint'
 import { applyHead, useRoute } from './router'
 import { MotionProvider } from './motion'
@@ -52,7 +52,7 @@ export function App() {
           {/* Drag the avatar onto the footer line, pull back and let go (components/catapult.ts) */}
           <span
             className="avatar-hit mb-4"
-            onPointerEnter={() => void preloadCatapult()}
+            onPointerEnter={() => readyAvatar(avatarRef.current)}
             // press and hold to release it (components/catapultTrigger.ts); the hint goes once it's done
             onPointerDown={(e) => startCatapult(e, avatarRef.current, usedAvatar)}
             onContextMenu={(e) => e.preventDefault()}

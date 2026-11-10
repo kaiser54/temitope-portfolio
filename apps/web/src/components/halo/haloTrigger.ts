@@ -24,7 +24,7 @@ export function readyHalo(item: HTMLElement) {
 /** Fetch the halo and set up WebGL while idle, so the first click only has to draw. */
 export function warmUpHalo(list: HTMLElement | null) {
   if (!list) return
-  void preloadHalo().then((m) => idle(() => m.warmHalo(list)))
+  void preloadHalo().then((m) => idle(() => m.warmHalo()))
 }
 
 /**
