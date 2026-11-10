@@ -2,15 +2,16 @@
  * The avatar's entry into the catapult (./catapult.ts), which is only fetched when it's about to be used:
  * on hover (desktop) or on the first press (touch).
  *
- * Press and hold to release it: a quick tap does nothing, and moving off before the hold completes cancels,
- * so stray taps and scroll swipes never knock it loose. While held the avatar sinks a little (the wrapper's
- * data-holding, see index.css); when the hold completes it pops free under the finger and the drag carries on.
+ * Press and hold to drop it: once the hold passes HOLD_MS it falls straight away (no drag). A quick tap does
+ * nothing, and moving off before then cancels, so stray taps and scroll swipes never knock it loose. While
+ * held the avatar sinks a little (the wrapper's data-holding, see index.css). Once it's down, the flying copy
+ * can be grabbed and dragged / flung as usual (catapult.ts); each time it comes home, a hold drops it again.
  */
 import type { PointerEvent } from 'react'
 import { prefersReducedMotion } from '../motion'
 
-/** How long to hold before the avatar comes free. */
-export const HOLD_MS = 450
+/** How long to hold before the avatar drops. */
+export const HOLD_MS = 300
 /** Moving further than this before then cancels the hold (it was a scroll or a slip). */
 const SLOP = 10
 
@@ -49,8 +50,7 @@ export function startCatapult(
     done()
     navigator.vibrate?.(12) // a small click where supported (Android)
     onRelease?.()
-    // Still held: the catapult takes over the drag from here (its own window listeners).
-    void mod.then((m) => m.grabAvatar(img, last.x, last.y))
+    void mod.then((m) => m.dropAvatar(img)) // it falls; grab the falling copy to drag it
   }, HOLD_MS)
 
   window.addEventListener('pointermove', move)
