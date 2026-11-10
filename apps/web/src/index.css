@@ -175,10 +175,6 @@ html {
 }
 .row-highlight[data-visible] { opacity: 1; }
 .row-highlight[data-focus] { box-shadow: var(--ring-inset), 0 0 0 2px var(--fg); }
-/* Shockwave halo over the Work list (components/halo): only while one runs, never catches the pointer */
-/* reaches 0.75rem past the list on each side, like the card (.row-highlight) */
-.halo-canvas { position: absolute; top: 0; bottom: 0; left: -0.75rem; width: calc(100% + 1.5rem); height: 100%; z-index: 2; pointer-events: none; display: none; }
-
 /* Keyboard focus ring is drawn on the shared card highlight instead (see .row-highlight[data-focus]) */
 .ui-accordion-trigger:focus-visible {
   outline: none;

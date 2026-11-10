@@ -1,6 +1,5 @@
 export { Button } from './components/button'
 export {
-  ACCORDION_DURATION,
   AccordionRoot,
   AccordionItem,
   AccordionTrigger,
