@@ -41,7 +41,13 @@ export function App() {
         <NotePage key={route.note} slug={route.note} />
       ) : (
       <>
-      <header className="enter flex flex-col gap-6" style={{ '--i': 0 } as CSSProperties}>
+      {/* On the homepage the header is the page; on /notes, /explorations… it repeats, so Google is told not to
+          quote it there and builds the snippet from that page's own list (or its description) instead. */}
+      <header
+        className="enter flex flex-col gap-6"
+        style={{ '--i': 0 } as CSSProperties}
+        data-nosnippet={route.home ? undefined : ''}
+      >
         <div>
           {/* Drag the avatar onto the footer line, pull back and let go (components/catapult.ts) */}
           <span

@@ -35,6 +35,9 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
   const { title, description } = routeMeta(route)
   // /work shows the same content as the homepage, so it points search engines at /.
   const canonicalPath = path === '/work' ? '/' : path
+  // /notes/writing, /notes/build-logs: thin filtered copies of /notes. Google may follow them but shouldn't list
+  // them (they were outranking real pages with the header as their snippet).
+  const filterPage = route.section === 'notes' && route.filter !== 'all' && !route.note
   const url = `${site}${canonicalPath}`
   const note = route.note ? notes.find((n) => n.slug === route.note) : undefined
 
@@ -55,7 +58,11 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${image}" />`,
     `<meta name="twitter:creator" content="@kaiser_major" />`,
-    route.notFound ? `<meta name="robots" content="noindex" />` : `<link rel="canonical" href="${url}" />`,
+    route.notFound
+      ? `<meta name="robots" content="noindex" />`
+      : filterPage
+        ? `<meta name="robots" content="noindex, follow" />` // no canonical: don't send mixed signals
+        : `<link rel="canonical" href="${url}" />`,
     !route.notFound && `<meta property="og:url" content="${url}" />`,
     note?.date && `<meta property="article:published_time" content="${note.date}" />`,
     jsonLd && `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>`,
@@ -73,7 +80,9 @@ for (const route of [...ALL_ROUTES, NOT_FOUND]) {
   console.log(`prerendered ${path.padEnd(20)} ${title}`)
 }
 
-const urls = ALL_ROUTES.filter((r) => pathFor(r) !== '/work').map((r) => {
+const listed = (r: (typeof ALL_ROUTES)[number]) =>
+  pathFor(r) !== '/work' && !(r.section === 'notes' && r.filter !== 'all' && !r.note)
+const urls = ALL_ROUTES.filter(listed).map((r) => {
   const date = r.note && notes.find((n) => n.slug === r.note)?.date
   return `  <url><loc>${site}${pathFor(r)}</loc>${date ? `<lastmod>${date}</lastmod>` : ''}</url>`
 })
