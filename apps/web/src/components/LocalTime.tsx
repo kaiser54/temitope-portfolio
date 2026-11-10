@@ -12,5 +12,10 @@ export function LocalTime({ timeZone }: { timeZone: string }) {
     return () => clearInterval(id)
   }, [])
 
-  return <time className="tabular-nums">{time}</time>
+  // data-nosnippet: a live clock is meaningless in a search result (Google renders the page and quoted it)
+  return (
+    <time className="tabular-nums" data-nosnippet="">
+      {time}
+    </time>
+  )
 }

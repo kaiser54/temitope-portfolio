@@ -8,7 +8,8 @@
     "build": "tsc && vite build && vite build --ssr src/entry-server.tsx --outDir dist-server && node scripts/prerender.ts",
     "preview": "vite preview",
     "og:images": "node scripts/og-images.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "icons": "node scripts/icons.ts"
   },
   "dependencies": {
     "@repo/ui": "workspace:*",
