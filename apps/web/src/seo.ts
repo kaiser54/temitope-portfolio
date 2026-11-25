@@ -3,7 +3,7 @@
  * and scripts/prerender.ts (writes a static HTML file per route at build time).
  * Imports use the .ts extension so Node can run this file directly.
  */
-import { NOTE_TAGS, explorations, notes, profile, projects, type NoteTag } from './content.ts'
+import { NOTE_TAGS, explorations, findNote, notes, profile, projects, type NoteTag } from './content.ts'
 
 export type Section = 'work' | 'explorations' | 'notes'
 export type NoteFilter = 'all' | NoteTag
@@ -23,7 +23,7 @@ export function parseRoute(pathname: string): Route | null {
   if (!m) return null
   const tag = NOTE_TAGS.find((t) => t.slug === m[1])
   if (tag) return { section: 'notes', filter: tag.value }
-  const note = notes.find((n) => n.slug === m[1])
+  const note = findNote(m[1])
   return note ? { section: 'notes', filter: 'all', note: note.slug } : null
 }
 
@@ -51,7 +51,7 @@ export function routeMeta(route: Route): { title: string; description: string } 
     return { title: `Page not found — ${name}`, description: `This page doesn't exist on ${name}'s site.` }
   }
   if (route.note) {
-    const n = notes.find((x) => x.slug === route.note)!
+    const n = findNote(route.note)!
     return { title: `${n.title} — ${name}`, description: n.summary ?? n.title }
   }
   if (route.section === 'work' && !route.home) {

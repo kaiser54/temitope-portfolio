@@ -896,6 +896,8 @@ html[data-note-morph="close"]::view-transition-image-pair(note-card) { animation
 }
 .note-askai { width: 100%; max-width: 528px; }
 .note-askai-fallback { height: 301px; border-radius: 24px; background: hsla(0, 0%, 94%, 1); }
+.note-tapback-stage { display: block; overflow: hidden; }
+.note-tapback-fallback { height: 400px; border-radius: inherit; background: #161618; }
 .note-figure figcaption { font-size: 0.875rem; color: var(--faint); text-wrap: pretty; }
 .note-roll-button {
   font-size: 1.75rem;

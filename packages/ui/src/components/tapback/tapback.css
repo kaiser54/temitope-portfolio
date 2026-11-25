@@ -1,0 +1,223 @@
+/* iMessage (macOS 26, dark) tapback. Sizes are from a 2× screen recording, halved to CSS px. */
+
+.tb-chat {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  overflow: hidden;
+  border-radius: inherit;
+  background: #161618;
+  color: #f2f2f7;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.3;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* ---------- Scene: the reactions card above the message, nothing else ----------
+   Width = bubble (280) + the bar's overhang past its right edge (46), so the bar and tail stay whole
+   down to a 358px column. Height: 28 + card 120 + 16 + bar 45 + bubble 162 + 28 = 399. */
+
+.tb-scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 326px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 28px 0;
+}
+.tb-target { position: relative; z-index: 3; align-self: flex-start; margin-top: 61px; }
+/* In a phone column the 326px scene would sit ~8px off the edges: scale it so it keeps a full gutter. */
+.tb-chat { container-type: inline-size; }
+@container (max-width: 420px) {
+  .tb-scene { zoom: 0.86; }
+}
+
+/* ---------- The message: a screenshot in a blue link frame ---------- */
+
+.tb-preview {
+  position: relative;
+  width: 280px;
+  padding: 12px 12px 14px;
+  border-radius: 16px;
+  background: linear-gradient(150deg, #57d0f0, #4c95e8);
+}
+.tb-shot {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  height: 136px;
+  overflow: hidden;
+  border-radius: 5px;
+  background: #1b1b1d;
+}
+.tb-shot-left { display: flex; flex-direction: column; gap: 4px; padding: 14px 8px 8px 10px; }
+.tb-shot-left i { display: block; height: 3px; border-radius: 2px; background: #3a3a3e; }
+.tb-shot-left i:nth-child(3) { width: 70%; }
+.tb-shot-left i:nth-child(4) { width: 45%; }
+.tb-shot-left .tb-shot-hero {
+  height: 46px;
+  margin-bottom: 4px;
+  border-radius: 3px;
+  background: radial-gradient(circle at 40% 45%, #f0a050, #b8281a 45%, #3a0d08 80%);
+}
+.tb-shot-right { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 10px 8px; background: #f3eee6; }
+.tb-shot-brand { color: #8c2f1a; font-size: 8px; font-weight: 800; }
+.tb-shot-head { color: #8c2f1a; font-family: Georgia, serif; font-size: 12px; font-weight: 700; line-height: 1.05; }
+.tb-shot-cup {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  width: 38px;
+  height: 46px;
+  border-radius: 4px;
+  background: radial-gradient(circle at 55% 62%, #2a1a0c 0 9px, #c9a25a 10px 12px, #8a6a3c 13px);
+}
+
+/* ---------- Tapback: everything hangs off the bubble's top-right corner ---------- */
+
+.tb-anchor { position: absolute; top: 0; right: 0; width: 0; height: 0; }
+
+.tb-capsule {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.1), 0 6px 18px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+}
+.tb-capsule:focus-visible { outline: 2px solid #0b7bfe; outline-offset: 2px; }
+.tb-chat[data-open] .tb-capsule { cursor: default; }
+.tb-dot { position: absolute; border-radius: 50%; pointer-events: none; }
+
+.tb-badge-glyph {
+  position: absolute;
+  left: -2px;
+  top: -9px;
+  translate: -50% -50%;
+  font-size: 15px;
+  line-height: 1;
+  pointer-events: none;
+}
+.tb-badge-glyph .tb-haha { font-size: 6.5px; }
+
+/* The open bar's footprint; clips the 8th emoji in half so the row reads as scrollable. */
+.tb-track {
+  position: absolute;
+  left: -240px;
+  top: -45px;
+  width: 284px;
+  height: 38px;
+  border-radius: 19px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  pointer-events: none;
+}
+.tb-track::-webkit-scrollbar { display: none; }
+.tb-chat[data-open] .tb-track { pointer-events: auto; }
+.tb-list { position: relative; display: flex; width: max-content; height: 100%; padding: 0 1px; }
+
+.tb-item {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  cursor: pointer;
+}
+.tb-item:focus-visible { outline: none; }
+.tb-item:focus-visible::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.6);
+}
+.tb-emoji { font-size: 22px; line-height: 1; }
+.tb-haha {
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.02em;
+  text-align: center;
+  background: linear-gradient(180deg, #7fd8ff, #1d8bff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* "Yours": the blue circle behind your reaction */
+.tb-selected {
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #0b7bfe;
+  pointer-events: none;
+}
+
+.tb-more {
+  position: absolute;
+  left: 7px;
+  top: -10px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #2b2c2f;
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.1);
+  color: #8e8e93;
+  transform-origin: 30% 20%;
+}
+
+/* ---------- Dim and the reactions card ---------- */
+
+.tb-dim { position: absolute; inset: 0; z-index: 2; background: rgb(0 0 0 / 0.5); }
+
+.tb-card-anchor { position: relative; z-index: 4; height: 120px; }
+.tb-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 122px;
+  height: 120px;
+  padding-top: 10px;
+  border-radius: 26px;
+  background: #2a2a2d;
+  box-shadow: inset 0 0 0 0.5px rgb(255 255 255 / 0.1), 0 10px 30px rgb(0 0 0 / 0.4);
+  transform-origin: 50% 0;
+}
+.tb-card-glyph {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #3a3a3e;
+}
+.tb-card-glyph .tb-emoji { font-size: 26px; }
+.tb-card-glyph .tb-haha { font-size: 12px; }
+.tb-card-tail { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 1px 0 3px; }
+.tb-card-tail i { display: block; width: 7px; height: 7px; border-radius: 50%; background: #3a3a3e; }
+.tb-card-tail i + i { width: 4px; height: 4px; }
+.tb-card-avatar {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #4a4372;
+  color: #ece9ff;
+  font-size: 14px;
+  font-weight: 700;
+}

@@ -203,6 +203,13 @@ export type Note = {
 /** Writing and build logs. Notes without a date show as "Soon". */
 const allNotes: Note[] = [
   {
+    title: 'Tapback, Frame by Frame',
+    slug: 'tapback',
+    tags: ['build-log'],
+    // draft: add a date when it's written
+    summary: 'The iMessage reaction bar and its reactions card, measured from a 60 fps recording and rebuilt.',
+  },
+  {
     title: 'Highlight, Then Ask AI',
     slug: 'ask-ai',
     tags: ['build-log'],
@@ -219,6 +226,10 @@ const allNotes: Note[] = [
   },
 ]
 export const notes = allNotes.filter((n) => !n.hidden)
+
+/** A listed note by slug. On the dev server hidden drafts open by URL too (never listed, never prerendered). */
+export const findNote = (slug: string) =>
+  notes.find((n) => n.slug === slug) ?? (import.meta.env?.DEV ? allNotes.find((n) => n.slug === slug) : undefined)
 
 export type Exploration = {
   title: string

@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css",
-    "./ask-ai": "./src/components/ask-ai/index.ts"
+    "./ask-ai": "./src/components/ask-ai/index.ts",
+    "./tapback": "./src/components/tapback/index.ts"
   },
   "scripts": {
     "typecheck": "tsc"

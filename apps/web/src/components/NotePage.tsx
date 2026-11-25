@@ -2,9 +2,10 @@ import { CodeXml, FileText, Link } from 'lucide-react'
 import type { CSSProperties, ReactNode } from 'react'
 import { CopyIconButton, IconLink } from './IconButton'
 import { useEnterClass } from '../noteMorph'
-import { notes } from '../content'
+import { findNote } from '../content'
 import { navigate } from '../router'
 import { AskAiNote } from '../notes/AskAiNote'
+import { TAPBACK_PROMPT, TapbackNote } from '../notes/TapbackNote'
 import { THEME_SWITCHER_PROMPT, ThemeSwitcherNote } from '../notes/ThemeSwitcherNote'
 
 const REPO = 'https://github.com/kaiser54/temitope-portfolio'
@@ -17,13 +18,14 @@ const BODIES: Record<string, { Body: () => ReactNode; prompt?: string; source: s
     source: `${REPO}/blob/main/apps/web/src/components/RollingText.tsx`,
   },
   'ask-ai': { Body: AskAiNote, source: `${REPO}/tree/main/packages/ui/src/components/ask-ai` },
+  tapback: { Body: TapbackNote, prompt: TAPBACK_PROMPT, source: `${REPO}/tree/main/packages/ui/src/components/tapback` },
 }
 
 const formatDate = (iso: string) =>
   new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(iso))
 
 export function NotePage({ slug }: { slug: string }) {
-  const note = notes.find((n) => n.slug === slug)
+  const note = findNote(slug)
   const entry = BODIES[slug]
   // Arriving by morph, the card is the entrance: skip the page's own fade-up.
   const enter = useEnterClass()
