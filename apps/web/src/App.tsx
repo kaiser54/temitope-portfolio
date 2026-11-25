@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { contact, profile } from './content'
-import { Company } from './components/Company'
+import { Company, CompanyCard } from './components/Company'
 import { LocalTime } from './components/LocalTime'
 import { ThemeToggle } from './components/ThemeToggle'
 import { FooterString } from './components/FooterString'
@@ -81,6 +81,7 @@ export function App() {
               )}
             </p>
           ))}
+          <CompanyCard />
         </div>
         {visibleContact.length > 0 && (
         <div className="grid grid-cols-2 gap-6 pt-2 text-sm">

@@ -11,8 +11,49 @@
 /* Accordion panel: height is a Motion spring (accordion.tsx); this only clips the content */
 .ui-accordion-panel { overflow: hidden; }
 
-/* Hover card: scales from its trigger. Open / close is a Motion spring (hover-card.tsx). */
-.ui-hover-card { transform-origin: var(--transform-origin); }
+/* Hover card: scales from its trigger. Open / close is a Motion spring (hover-card.tsx).
+   Moving between triggers while it's open keeps the one card: the positioner glides to the new
+   trigger, the popup eases to the new content's height, and the content crossfades with a small
+   push in the direction the pointer travelled. The glide is on once the card has finished opening
+   (data-settled) or while Base UI reports a switch (data-transitioning), never on first open, so
+   the card doesn't slide in from the corner. */
+.ui-hover-card {
+  transform-origin: var(--transform-origin);
+  width: var(--popup-width, auto);
+  height: var(--popup-height, auto);
+  transition: height 280ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.ui-hover-card-positioner[data-settled],
+.ui-hover-card-positioner:has([data-transitioning]) {
+  transition:
+    top 280ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1)),
+    left 280ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1)),
+    transform 280ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.ui-hover-card-viewport { position: relative; }
+.ui-hover-card-viewport > [data-current],
+.ui-hover-card-viewport > [data-previous] {
+  transition:
+    opacity 180ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1)),
+    translate 280ms var(--ease-out-quint, cubic-bezier(0.23, 1, 0.32, 1));
+}
+.ui-hover-card-viewport > [data-previous] { inset: 0 auto auto 0; width: var(--popup-width); }
+.ui-hover-card-viewport > [data-current][data-starting-style],
+.ui-hover-card-viewport > [data-previous][data-ending-style] { opacity: 0; }
+.ui-hover-card-viewport[data-activation-direction^="left"] > [data-current][data-starting-style],
+.ui-hover-card-viewport[data-activation-direction^="right"] > [data-previous][data-ending-style] {
+  translate: -12px 0;
+}
+.ui-hover-card-viewport[data-activation-direction^="right"] > [data-current][data-starting-style],
+.ui-hover-card-viewport[data-activation-direction^="left"] > [data-previous][data-ending-style] {
+  translate: 12px 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-hover-card,
+  .ui-hover-card-positioner[data-settled],
+  .ui-hover-card-positioner:has([data-transitioning]),
+  .ui-hover-card-viewport > * { transition: opacity 120ms ease; translate: none !important; }
+}
 
 /* Select */
 .ui-select-trigger {

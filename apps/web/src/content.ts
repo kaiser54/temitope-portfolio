@@ -64,13 +64,15 @@ export const profile = {
   timeZone: 'Africa/Lagos',
   intro: [
     ['Co-founder of ', { company: 'quality' }, ' — visual feedback and QA for software teams.'],
-    ['I build frontends for products that move money and run businesses — across fintech, commerce and procurement.'],
     [
-      'Currently shaping the world of digital payment infrastructures at ',
+      'I build frontends for products that move money and run businesses. Most of my work has been across fintech, commerce and procurement.',
+    ],
+    [
+      'Currently working on payment infrastructure at ',
       { company: 'passpoint' },
-      '. Previously led product engineering at ',
+      '. Previously at ',
       { company: 'ipc' },
-      ', and shipped with ',
+      ', where I led product engineering, and ',
       { company: 'acumen' },
       ' and ',
       { company: 'swing' },
