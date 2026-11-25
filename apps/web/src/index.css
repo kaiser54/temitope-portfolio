@@ -591,38 +591,287 @@ html {
 .footer-string:has(rect:hover) path,
 .footer-string:has(rect:active) path { stroke: var(--faint); }
 
+/* ---------- Note cards (Notes list) ---------- */
+.note-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.875rem 1rem 0.9375rem;
+  border-radius: 0.75rem;
+  background: var(--note-card-fill);
+  box-shadow: 0 0 0 1px var(--note-card-hair);
+  transition: background-color 150ms ease, transform 200ms var(--ease-out-quint);
+}
+:root {
+  --note-card-fill: color-mix(in srgb, var(--fg) 2.5%, var(--bg));
+  --note-card-fill-hover: color-mix(in srgb, var(--fg) 4.5%, var(--bg));
+  --note-card-hair: color-mix(in srgb, var(--fg) 7%, transparent);
+}
+@media (hover: hover) and (pointer: fine) { a.note-card:hover { background: var(--note-card-fill-hover); } }
+a.note-card:active { transform: scale(0.99); }
+a.note-card:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.note-card[aria-disabled] { cursor: default; }
+/* An animated thumbnail across the top of the card, edge to edge (components/thumbs). The card is its
+   ground; the stage inside is transparent. The hold keeps the card's height until the scene loads. */
+.note-card-thumb {
+  display: block;
+  margin: -0.875rem -1rem 0.75rem;
+  border-radius: 0.75rem 0.75rem 0 0;
+  overflow: hidden;
+  /* its own sunken ground with a hairline under it, so the window bleeds off a picture, not mid-card */
+  background: color-mix(in srgb, var(--fg) 3.5%, var(--bg));
+  box-shadow: inset 0 -1px 0 var(--note-card-hair);
+}
+.note-card-thumb-hold { display: block; aspect-ratio: 552 / 220; }
+@media (max-width: 559px) { .note-card-thumb-hold { aspect-ratio: 342 / 200; } }
+/* fit-content: it flies into the page heading, which is also as wide as its words, so nothing is squashed */
+.note-card-title { width: fit-content; color: var(--fg); font-weight: 500; text-wrap: pretty; }
+.note-card-summary { color: var(--muted); text-wrap: pretty; }
+.note-card-meta { padding-top: 0.25rem; font-size: 0.8125rem; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* ---------- Note morph: card ⇄ page (noteMorph.ts) ----------
+   The card's surface grows into .note-sheet (an empty box as wide as the column and as tall as the
+   screen) and clears as it goes, so the page fades in beneath it; the title flies on its own.
+   Closing plays the surface backwards. Card and page share a width, so nothing is stretched sideways. */
+.note-sheet { position: absolute; inset: 0 0 auto; height: 100svh; pointer-events: none; view-transition-name: note-card; }
+.note-title { view-transition-name: note-title; width: fit-content; }
+
+::view-transition-group(note-card),
+::view-transition-group(note-title) {
+  animation-duration: 460ms;
+  animation-timing-function: var(--ease-out-quint);
+}
+::view-transition-group(note-card) { border-radius: 0.75rem; overflow: clip; }
+::view-transition-image-pair(note-card) { animation: note-surface 460ms var(--ease-out-quint) both; }
+html[data-note-morph="close"]::view-transition-image-pair(note-card) { animation-direction: reverse; }
+@keyframes note-surface {
+  from { background-color: var(--note-card-fill); box-shadow: inset 0 0 0 1px var(--note-card-hair); }
+  to { background-color: transparent; box-shadow: inset 0 0 0 1px transparent; }
+}
+/* the leaving side's words go first; the arriving side's come in once the surface is moving */
+::view-transition-old(note-card) { animation: note-out 120ms ease-out both; }
+::view-transition-new(note-card) { animation: note-in 220ms ease-out 140ms both; }
+/* The title can wrap differently on card and page (narrow screens), so neither side is stretched to the
+   other's box: each keeps its own size, pinned top-left, and they barely overlap. */
+::view-transition-old(note-title),
+::view-transition-new(note-title) { width: auto; height: auto; object-fit: none; object-position: left top; }
+::view-transition-old(note-title) { animation: note-out 120ms ease-out both; }
+::view-transition-new(note-title) { animation: note-in 220ms ease-out 100ms both; }
+/* pages hand over through the card: the old one is gone before the new one starts */
+::view-transition-old(root) { animation: note-out 120ms ease-out both; }
+::view-transition-new(root) { animation: note-in 300ms ease-out 160ms both; }
+@keyframes note-out { to { opacity: 0; } }
+@keyframes note-in { from { opacity: 0; } }
+
 /* ---------- Note pages ---------- */
 .note-back { font-size: 0.875rem; color: var(--faint); width: fit-content; transition: color 150ms ease; }
 @media (hover: hover) and (pointer: fine) { .note-back:hover { color: var(--fg); } }
 .note-back:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; border-radius: 2px; }
 
-.note-body { display: flex; flex-direction: column; gap: 1rem; color: var(--muted); }
+/* Note pages follow Raphael Salaja's work pages: one size of type, hairlines instead of boxes,
+   numbered figures and footnotes. See CLAUDE.md "Writing Notes". */
+.note-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.note-head h1, .note-head time, .note-head p { display: block; font-size: 0.875rem; line-height: 1.5rem; }
+.note-actions { display: flex; gap: 0.125rem; margin-top: 0.125rem; margin-right: -0.375rem; }
+
+.note-body {
+  --note-fill: color-mix(in srgb, var(--fg) 3.5%, var(--bg));
+  --note-fill-strong: color-mix(in srgb, var(--fg) 6%, var(--bg));
+  --note-hair: color-mix(in srgb, var(--fg) 8%, transparent);
+  --note-accent: #3b8cf6;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: color-mix(in srgb, var(--fg) 88%, var(--bg));
+  counter-reset: figure;
+}
+:root[data-theme="dark"] .note-body { --note-accent: #6aa8ff; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .note-body { --note-accent: #6aa8ff; } }
 .note-body p { text-wrap: pretty; }
-.note-body h2 { margin-top: 1.75rem; color: var(--fg); font-weight: 500; }
+/* Headings stay body size; a hairline runs from the text to the column's edge. */
+.note-body h2 { display: flex; align-items: center; gap: 1rem; margin-top: 1.75rem; color: var(--fg); font-weight: 400; }
+.note-body h2::after { content: ""; flex: 1; height: 1px; background: var(--note-hair); }
+.note-body h3 { margin-top: 0.75rem; color: var(--fg); font-weight: 400; }
 .note-body ul { display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.1rem; list-style: disc; }
 .note-body li::marker { color: var(--faint); }
 .note-inline {
-  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-  font-size: 0.8125rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
   padding: 0.0625rem 0.3125rem;
-  border-radius: 0.3125rem;
-  background: var(--hover);
+  border-radius: 0.375rem;
+  border: 1px solid var(--note-hair);
+  background: var(--note-fill);
   color: var(--fg);
   white-space: nowrap;
 }
+.note-source { margin-top: 0.5rem; color: var(--muted); }
 
-.note-code { border-radius: 0.75rem; overflow: hidden; background: color-mix(in srgb, var(--fg) 4%, var(--bg)); }
-.note-code-file { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.875rem; font-size: 0.75rem; color: var(--faint); }
+/* Icon buttons (page actions, copy) with a small tooltip from data-tip. */
+.note-icon-btn {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 0.5rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .note-icon-btn:hover { color: var(--fg); background: var(--hover); } }
+/* the icon inside: swapped with a pop by IconSwap (popLayout pins the leaving one in place) */
+.icon-swap { display: grid; place-items: center; }
+.note-icon-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+[data-tip]::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 0.375rem);
+  right: 0;
+  translate: 0 2px;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  /* leaving: gone at once. A fading dark chip with page-coloured text reads as a grey ghost. */
+  transition: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  /* arriving: after a 300ms rest, fade up 2px */
+  [data-tip]:hover::after { opacity: 1; translate: 0 0; transition: opacity 120ms ease 300ms, translate 120ms ease 300ms; }
+}
+[data-tip]:focus-visible::after { opacity: 1; translate: 0 0; }
+
+/* Code: a faint shell with the filename, the code on a raised inner card. */
+.note-code { border-radius: 0.75rem; background: var(--note-fill); padding: 0 0.25rem 0.25rem; }
+.note-code-file { display: flex; align-items: center; justify-content: space-between; padding: 0.375rem 0.25rem 0.375rem 0.625rem; font-size: 0.75rem; color: var(--muted); }
+.note-code-name { display: inline-flex; align-items: center; gap: 0.375rem; }
+.note-code-name svg { color: var(--faint); }
 .note-code pre {
   margin: 0;
-  padding: 0.875rem;
+  padding: 0.75rem;
   overflow-x: auto;
-  font-family: ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace;
-  font-size: 0.8125rem;
-  line-height: 1.6;
+  border-radius: 0.5rem;
+  background: var(--bg);
+  box-shadow: 0 1px 3px oklch(0 0 0 / 0.08), 0 0 0 1px oklch(0 0 0 / 0.04);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.125rem;
   color: var(--fg);
   tab-size: 2;
 }
+:root[data-theme="dark"] .note-code pre { box-shadow: 0 1px 3px oklch(0 0 0 / 0.3), 0 0 0 1px oklch(1 0 0 / 0.06); }
+
+/* Figures: "Figure N  Title" and a legend, hairlines above and below, a centred caption. */
+.note-fig { counter-increment: figure; display: flex; flex-direction: column; margin: 1.25rem 0 0.5rem; }
+.note-fig-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--note-hair);
+}
+.note-fig-title { color: var(--fg); }
+.note-fig-title::before { content: "Figure " counter(figure); color: var(--muted); margin-right: 0.5rem; }
+.note-fig-aside { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1rem; font-size: 0.8125rem; color: var(--fg); }
+.note-fig-body { padding: 1.5rem 0; border-bottom: 1px solid var(--note-hair); }
+.note-fig figcaption, .note-demo figcaption {
+  padding-top: 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.125rem;
+  color: var(--muted);
+  text-align: center;
+  text-wrap: balance;
+}
+.note-key { display: inline-flex; align-items: center; gap: 0.375rem; }
+.note-key i { width: 0.875rem; border-top: 1.5px solid var(--fg); }
+.note-key[data-dashed] i { border-top-style: dashed; }
+.note-key[data-tone="faint"] i { border-color: var(--faint); }
+.note-key[data-tone="accent"] i { border-color: var(--note-accent); }
+
+/* Comparison tiles: a hairline box each, then a label and a spec line. */
+.note-tiles { display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 0.75rem; }
+.note-tile-box {
+  display: grid;
+  place-items: center;
+  height: 9rem;
+  margin-bottom: 0.625rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--note-hair);
+  background: var(--bg);
+}
+.note-tile-label { color: var(--fg); }
+.note-tile-spec { color: var(--muted); line-height: 1.25rem; }
+
+/* Segmented control: the active option is a raised chip. */
+.note-seg { display: inline-flex; gap: 0.125rem; }
+.note-seg button {
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+.note-seg button[aria-checked="true"] {
+  color: var(--fg);
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--note-hair), 0 1px 2px oklch(0 0 0 / 0.06);
+}
+@media (hover: hover) and (pointer: fine) { .note-seg button:hover { color: var(--fg); } }
+.note-seg button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+/* The demo: a stage in the column with a Debug button; open, it widens beside a panel. */
+.note-demo { display: grid; gap: 0.75rem; margin: 0.75rem 0 0.25rem; }
+.note-demo figcaption { padding-top: 0; }
+.note-demo-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 14rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--note-hair);
+  background: var(--bg);
+}
+/* Plain button on the note fill (Play in the timeline). */
+.note-btn {
+  height: 2.375rem;
+  width: 100%;
+  border-radius: 0.625rem;
+  background: var(--note-fill);
+  color: var(--fg);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+@media (hover: hover) and (pointer: fine) { .note-btn:hover { background: var(--note-fill-strong); } }
+.note-btn:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+
+/* Tables: muted header, hairline rows, values right-aligned. */
+.note-table-wrap { overflow-x: auto; margin: 0.25rem 0; }
+.note-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.note-table th { font-weight: 400; color: var(--muted); text-align: right; padding: 0 0 0.5rem 1rem; }
+.note-table td { color: var(--fg); text-align: right; padding: 0.5rem 0 0.5rem 1rem; border-top: 1px solid var(--note-hair); white-space: nowrap; }
+.note-table th:first-child, .note-table td:first-child { text-align: left; padding-left: 0; }
+
+/* Footnotes */
+.note-ref { font-size: 0.625rem; line-height: 0; padding-left: 0.25rem; }
+.note-ref-link { color: var(--muted); }
+.note-footnotes { margin-top: 1.75rem; padding-top: 1.5rem; border-top: 1px solid var(--note-hair); color: var(--muted); }
+.note-body .note-footnotes ol { display: grid; gap: 0.5rem; padding-left: 0; list-style: none; }
+.note-footnotes li { display: grid; grid-template-columns: 1rem 1fr; line-height: 1.375rem; scroll-margin-top: 2rem; }
+.note-fn-n { color: var(--fg); }
+.note-fn-back { margin-left: 0.125rem; color: var(--faint); }
+[id^="ref-"] { scroll-margin-top: 6rem; }
 
 .note-figure { display: flex; flex-direction: column; gap: 0.625rem; margin: 0.5rem 0; }
 .note-stage {
@@ -648,43 +897,24 @@ html {
 .note-askai { width: 100%; max-width: 528px; }
 .note-askai-fallback { height: 301px; border-radius: 24px; background: hsla(0, 0%, 94%, 1); }
 .note-figure figcaption { font-size: 0.875rem; color: var(--faint); text-wrap: pretty; }
-.note-controls { display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem; }
-.note-chips { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8125rem; }
-.note-chips-label { color: var(--faint); margin-right: 0.25rem; }
-.note-chips button {
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.375rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: background-color 150ms ease, color 150ms ease;
-}
-.note-chips button[aria-pressed="true"] { background: var(--hover); color: var(--fg); }
-@media (hover: hover) and (pointer: fine) { .note-chips button:hover { color: var(--fg); } }
-.note-chips button:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
-
-/* two equal columns that may shrink below the cyclers' width, so the pair stays centred on phones */
-.note-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; width: 100%; }
-.note-cycler { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: 100%; max-width: 9.5rem; justify-self: center; }
-.note-cycler-label { font-size: 0.75rem; color: var(--faint); }
 .note-roll-button {
   font-size: 1.75rem;
+  line-height: 1.3;
   color: var(--fg);
   cursor: pointer;
   border-radius: 0.375rem;
 }
 .note-roll-button:focus-visible { outline: 2px solid var(--fg); outline-offset: 4px; }
 
-/* Note tweak panel + prompt */
-.note-tweaks {
-  display: grid;
-  gap: 0.5rem;
-  font-size: 0.8125rem;
-}
-.note-tweaks-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding-top: 0.25rem; }
-.note-tweaks .note-chips-label { width: 4.5rem; margin-right: 0.5rem; }
+/* Values rows under the demo card */
+.note-tweaks { display: grid; gap: 0.5rem; font-size: 0.8125rem; }
+.note-tweaks-row { display: flex; align-items: center; gap: 0.75rem; padding-top: 0.25rem; }
+.note-tweaks-label { color: var(--muted); }
 .note-reset {
-  padding: 0.125rem 0.5rem;
-  border-radius: 0.375rem;
+  margin-left: auto;
+  height: 1.75rem;
+  padding: 0 0.625rem;
+  border-radius: 0.5rem;
   color: var(--muted);
   cursor: pointer;
   transition: color 150ms ease, background-color 150ms ease, opacity 150ms ease;
@@ -693,16 +923,6 @@ html {
 @media (hover: hover) and (pointer: fine) { .note-reset:not(:disabled):hover { color: var(--fg); background: var(--hover); } }
 .note-reset:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
 
-.note-copy {
-  padding: 0.125rem 0.5rem;
-  margin: -0.125rem -0.5rem -0.125rem 0;
-  border-radius: 0.375rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 150ms ease, background-color 150ms ease;
-}
-@media (hover: hover) and (pointer: fine) { .note-copy:hover { color: var(--fg); background: var(--hover); } }
-.note-copy:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
 .note-code[data-lang="prompt"] pre { white-space: pre-wrap; max-height: 22rem; overflow: auto; }
 
 /* Syntax colours (CodeBlock + highlight.ts): muted hues that sit inside the grey palette */
@@ -878,6 +1098,7 @@ html {
 .note-timeline-stage { display: grid; place-items: center; }
 .note-timeline-word {
   font-size: 1.75rem;
+  line-height: 1.3;
   color: var(--fg);
   outline: 1px dashed color-mix(in srgb, var(--fg) 30%, transparent);
   outline-offset: 0;
@@ -885,44 +1106,45 @@ html {
 .note-timeline-word .roll-letter { transition: none; }
 .note-chart { position: relative; height: 8.5rem; cursor: ew-resize; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 .note-chart svg { width: 100%; height: 100%; overflow: visible; }
-.note-chart path { fill: none; vector-effect: non-scaling-stroke; stroke-width: 1.25px; }
+.note-chart { margin-top: 1.75rem; margin-left: 2.5rem; }
+.note-chart path { fill: none; vector-effect: non-scaling-stroke; stroke-width: 1.5px; }
 .note-chart .c-in { stroke: var(--fg); }
-.note-chart .c-out { stroke: var(--faint); }
-.note-chart .c-grid { stroke: var(--line); stroke-width: 1px; }
+.note-chart .c-out { stroke: var(--faint); stroke-dasharray: 4 3; }
+.note-chart .c-grid { stroke: var(--faint); stroke-width: 1px; stroke-dasharray: 1 3; }
+.note-chart-y { position: absolute; right: calc(100% + 0.75rem); font-size: 0.75rem; line-height: 1rem; color: var(--muted); translate: 0 -50%; }
+.note-chart-y[data-at="top"] { top: 0; }
+.note-chart-y[data-at="bottom"] { top: 100%; }
+/* a moment called out on the chart: dotted line and a label beside it */
+.note-mark { position: absolute; top: -1.5rem; bottom: 0; border-left: 1px dashed var(--faint); pointer-events: none; }
+.note-mark span { position: absolute; top: -0.25rem; right: 0.375rem; white-space: nowrap; font-size: 0.75rem; line-height: 1rem; color: var(--muted); }
 .note-playhead {
   position: absolute;
   inset-block: -0.25rem;
-  width: 1px;
-  background: color-mix(in srgb, var(--fg) 40%, transparent);
-  translate: -0.5px 0;
+  width: 1.5px;
+  background: var(--note-accent);
+  translate: -0.75px 0;
   pointer-events: none;
-  transition: background-color 150ms ease;
+}
+.note-playhead::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--note-accent);
+  translate: -50% 0;
 }
 /* a press eases the playhead to the cursor; a drag glues it there */
-.note-chart[data-easing] .note-playhead { transition: left 160ms var(--ease-out-quint), background-color 150ms ease; }
-.note-chart[data-dragging] .note-playhead,
-.note-chart:hover .note-playhead { background: var(--fg); }
+.note-chart[data-easing] .note-playhead { transition: left 160ms var(--ease-out-quint); }
 @media (prefers-reduced-motion: reduce) { .note-chart[data-easing] .note-playhead { transition: none; } }
-.note-ticks { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--faint); font-variant-numeric: tabular-nums; }
-.note-legend { display: flex; flex-wrap: wrap; gap: 0.25rem 1rem; font-size: 0.75rem; color: var(--faint); }
-.note-legend i { display: inline-block; width: 0.875rem; height: 0; border-top: 1.25px solid; vertical-align: middle; margin-right: 0.375rem; }
-.note-legend .l-in i { border-color: var(--fg); }
-.note-legend .l-out i { border-color: var(--faint); }
-.note-timeline-controls { display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: center; }
-.note-play {
-  padding: 0.25rem 0.625rem;
-  border-radius: 0.375rem;
-  font-size: 0.8125rem;
-  color: var(--muted);
-  cursor: pointer;
-  transition: color 150ms ease, background-color 150ms ease, transform 150ms var(--ease-out-quint);
-}
-@media (hover: hover) and (pointer: fine) { .note-play:hover { color: var(--fg); background: var(--hover); } }
-.note-play:active { transform: scale(0.97); }
-.note-play:focus-visible { outline: 2px solid var(--fg); outline-offset: 1px; }
+.note-ticks { display: flex; justify-content: space-between; margin-left: 2.5rem; padding-top: 0.5rem; font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.note-timeline-controls { display: grid; grid-template-columns: 1fr 6.5rem; gap: 0.5rem; align-items: center; }
+.note-play { height: 2rem; font-size: 0.8125rem; }
 
-.note-body a:not(.note-back) { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; transition: text-decoration-color 150ms ease; }
-@media (hover: hover) and (pointer: fine) { .note-body a:not(.note-back):hover { text-decoration-color: var(--fg); } }
+.note-body a:not([class]) { color: var(--fg); text-decoration: underline; text-decoration-color: var(--line-strong); text-underline-offset: 3px; transition: text-decoration-color 150ms ease; }
+@media (hover: hover) and (pointer: fine) { .note-body a:not([class]):hover { text-decoration-color: var(--fg); } }
 .note-body ol { display: flex; flex-direction: column; gap: 0.5rem; padding-left: 1.25rem; list-style: decimal; }
 .note-body ol li::marker { color: var(--faint); font-variant-numeric: tabular-nums; }
 .note-timeline-word.roll { transition: none; }

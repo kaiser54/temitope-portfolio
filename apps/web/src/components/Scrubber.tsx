@@ -92,6 +92,11 @@ export function Scrubber({
 
   const active = hovered || focused
   const showPreview = hoverAt !== null && !pressed.current
+  // The tooltip keeps its last position and text while it fades out; reading hoverAt directly would
+  // empty it and jump it to the left edge the moment the pointer leaves.
+  const lastHover = useRef(0)
+  if (hoverAt !== null) lastHover.current = hoverAt
+  const tipAt = hoverAt ?? lastHover.current
 
   return (
     <div
@@ -114,10 +119,10 @@ export function Scrubber({
       <div
         className="scrub-tip"
         data-show={(showPreview && tipReady) || undefined}
-        style={{ '--h': hoverAt ?? 0 } as CSSProperties}
+        style={{ '--h': tipAt } as CSSProperties}
         aria-hidden
       >
-        {hoverAt !== null && format(+(min + hoverAt * span).toFixed(decimals))}
+        {format(+(min + tipAt * span).toFixed(decimals))}
       </div>
 
       <div ref={rowRef} className="scrub-row" style={{ '--p': p, '--h': hoverAt ?? p } as CSSProperties}>

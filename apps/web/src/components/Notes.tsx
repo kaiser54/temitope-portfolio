@@ -1,9 +1,30 @@
 import { m } from 'motion/react'
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ComponentType, type LazyExoticComponent } from 'react'
 import { NOTE_TAGS, type Note, type NoteTag } from '../content'
 import { easeOutQuint } from '../motion'
 import type { NoteFilter } from './SectionTabs'
 import { navigate } from '../router'
+
+/**
+ * Animated thumbnails for note cards, by slug (stageshow scenes, components/thumbs). Each is its own chunk,
+ * loaded after hydration, so the kit never reaches the main bundle or the prerendered HTML.
+ */
+const THUMBS: Record<string, LazyExoticComponent<ComponentType>> = {
+  'theme-switcher': lazy(() => import('./thumbs/ThemeSwitchThumb')),
+}
+
+function NoteThumb({ slug }: { slug: string }) {
+  const Thumb = THUMBS[slug]
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
+  if (!Thumb) return null
+  const hold = <span className="note-card-thumb-hold" />
+  return (
+    <span className="note-card-thumb" aria-hidden>
+      {mounted ? <Suspense fallback={hold}>{<Thumb />}</Suspense> : hold}
+    </span>
+  )
+}
 
 const tagLabel = (t: NoteTag) => NOTE_TAGS.find((x) => x.value === t)?.label ?? t
 
@@ -34,27 +55,26 @@ export function Notes({ filter, items: visible }: { filter: NoteFilter; items: N
         {visible.length === 0 ? (
           <p className="py-2.5 text-muted">No {emptyLabel} yet — on the way.</p>
         ) : (
-          <ul className="flex flex-col gap-1">
+          <ul className="flex flex-col gap-2">
             {visible.map((n) => {
               const body = (
                 <>
-                  <span className="text-sm text-faint tabular-nums sm:pt-px">{n.date ? formatDate(n.date) : 'Soon'}</span>
-                  <span className="flex min-w-0 flex-col gap-1">
-                    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-                      <span className="font-medium">{n.title}</span>
-                      <span className="text-sm text-faint">{n.tags.map(tagLabel).join(' · ')}</span>
-                    </span>
-                    {n.summary && <span className="text-pretty text-muted">{n.summary}</span>}
+                  {n.slug && <NoteThumb slug={n.slug} />}
+                  <span className="note-card-title">{n.title}</span>
+                  {n.summary && <span className="note-card-summary">{n.summary}</span>}
+                  <span className="note-card-meta">
+                    {n.date ? formatDate(n.date) : 'Soon'} · {n.tags.map(tagLabel).join(' · ')}
                   </span>
                 </>
               )
-              const row = 'note-row grid gap-1 py-2.5 sm:grid-cols-[4.5rem_1fr] sm:gap-0'
               return (
                 <li key={n.title}>
                   {n.slug ? (
+                    // Opens with a morph: this card grows into the note's page (noteMorph.ts)
                     <a
                       href={`/notes/${n.slug}`}
-                      className={`${row} note-link`}
+                      className="note-card"
+                      data-note-slug={n.slug}
                       onClick={(e) => {
                         if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return
                         e.preventDefault()
@@ -64,11 +84,11 @@ export function Notes({ filter, items: visible }: { filter: NoteFilter; items: N
                       {body}
                     </a>
                   ) : n.href ? (
-                    <a href={n.href} className={`${row} note-link`}>
+                    <a href={n.href} className="note-card">
                       {body}
                     </a>
                   ) : (
-                    <div className={row} aria-disabled>
+                    <div className="note-card" aria-disabled>
                       {body}
                     </div>
                   )}

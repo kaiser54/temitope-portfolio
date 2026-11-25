@@ -1,50 +1,32 @@
-import { useMemo, useState } from 'react'
+import { Copy, FileText } from 'lucide-react'
+import { useMemo } from 'react'
+import { CopyIconButton } from './IconButton'
 import { highlight, type Lang } from './highlight'
-import { RollingText } from './RollingText'
 
 /**
- * Titled, syntax-coloured block for code and prompts in notes.
+ * Titled, syntax-coloured block for code and prompts in notes: a faint shell holding a file icon,
+ * the filename and a copy button, with the code on a raised inner card.
  *
  * - `lang="code"` colours CSS and TS/TSX (both can share one block).
  * - `lang="prompt"` colours plain-English prompts: headings, list markers and inline values; it wraps
  *   and caps its height.
- * - `copy` adds a Copy button whose label rolls to "Copied" with the same component as the theme switch.
  */
-export function CodeBlock({
-  title,
-  code,
-  lang = 'code',
-  copy = lang === 'prompt',
-}: {
-  title: string
-  code: string
-  lang?: Lang
-  copy?: boolean
-}) {
+export function CodeBlock({ title, code, lang = 'code' }: { title: string; code: string; lang?: Lang }) {
   const tokens = useMemo(() => highlight(code, lang), [code, lang])
-  const [copied, setCopied] = useState(false)
 
   return (
     <div className="note-code" data-lang={lang}>
       <div className="note-code-file">
-        <span>{title}</span>
-        {copy && (
-          <button
-            type="button"
-            className="note-copy"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(code)
-                setCopied(true)
-                setTimeout(() => setCopied(false), 1600)
-              } catch {
-                // clipboard blocked: the text is still selectable below
-              }
-            }}
-          >
-            <RollingText text={copied ? 'Copied' : 'Copy'} />
-          </button>
-        )}
+        <span className="note-code-name">
+          <FileText size={14} strokeWidth={1.75} aria-hidden />
+          {title}
+        </span>
+        <CopyIconButton
+          label={`Copy ${title}`}
+          text={() => code}
+          size={14}
+          icon={<Copy size={14} strokeWidth={1.75} aria-hidden />}
+        />
       </div>
       <pre>
         <code>

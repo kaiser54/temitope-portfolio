@@ -1,5 +1,6 @@
 import { animate } from '../animate'
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { Fig, Key, Segmented, Tiles } from './NoteKit'
 import { RollingText, type RollVariant } from './RollingText'
 import { Scrubber } from './Scrubber'
 
@@ -10,71 +11,36 @@ const SPEEDS = [
   { label: '¼×', value: 4 },
 ]
 
-/** Framed demo with a caption. */
-export function Figure({ children, caption, controls }: { children: ReactNode; caption?: ReactNode; controls?: ReactNode }) {
-  return (
-    <figure className="note-figure">
-      <div className="note-stage">{children}</div>
-      {controls && <div className="note-controls">{controls}</div>}
-      {caption && <figcaption>{caption}</figcaption>}
-    </figure>
-  )
-}
-
-function Chips<T extends string | number>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string
-  options: { label: string; value: T }[]
-  value: T
-  onChange: (v: T) => void
-}) {
-  return (
-    <div className="note-chips" role="group" aria-label={label}>
-      <span className="note-chips-label">{label}</span>
-      {options.map((o) => (
-        <button key={String(o.value)} type="button" aria-pressed={o.value === value} onClick={() => onChange(o.value)}>
-          {o.label}
-        </button>
-      ))}
-    </div>
-  )
-}
-
 /** One clickable rolling word, right-aligned like the footer switch so its left edge moves. */
 function Cycler({
+  name,
   variant,
   speed,
   bounds,
-  label,
   vars,
   removeAfter,
 }: {
+  name: string
   variant?: RollVariant
   speed: number
   bounds: boolean
-  label?: string
   vars?: CSSProperties
   removeAfter?: number
 }) {
   const [i, setI] = useState(0)
   return (
-    <div className="note-cycler">
-      {label && <span className="note-cycler-label">{label}</span>}
-      <button
-        type="button"
-        className="note-roll-button"
-        aria-label={`${label ? `${label}: ` : ''}${WORDS[i]}. Click to switch`}
-        onClick={() => setI((n) => (n + 1) % WORDS.length)}
-      >
-        <RollingText text={WORDS[i]} variant={variant} speed={speed} bounds={bounds} vars={vars} removeAfter={removeAfter} />
-      </button>
-    </div>
+    <button
+      type="button"
+      className="note-roll-button"
+      aria-label={`${name}: ${WORDS[i]}. Click to switch`}
+      onClick={() => setI((n) => (n + 1) % WORDS.length)}
+    >
+      <RollingText text={WORDS[i]} variant={variant} speed={speed} bounds={bounds} vars={vars} removeAfter={removeAfter} />
+    </button>
   )
 }
+
+/* ---------- The demo, with its values under it ---------- */
 
 const EASES = [
   { label: 'Ease-out', value: 'cubic-bezier(0.23, 1, 0.32, 1)' },
@@ -83,14 +49,17 @@ const EASES = [
   { label: 'Back', value: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
 ]
 const DEFAULTS = { duration: 300, stagger: 18, travel: 70, blur: 2, ease: EASES[0].value }
+const ON_OFF = [
+  { label: 'Off', value: 'off' },
+  { label: 'On', value: 'on' },
+]
 
-/** The switch as it ships, with every timing exposed. */
-export function TweakDemo() {
+/** The switch as it ships, with every value it reads in rows under the card. */
+export function RollDemo() {
   const [t, setT] = useState(DEFAULTS)
   const [bounds, setBounds] = useState(false)
   const set = <K extends keyof typeof DEFAULTS>(k: K) => (v: (typeof DEFAULTS)[K]) => setT((s) => ({ ...s, [k]: v }))
   const changed = JSON.stringify(t) !== JSON.stringify(DEFAULTS)
-
   const vars = {
     '--roll-in': `${t.duration}ms`,
     '--roll-stagger': `${t.stagger}ms`,
@@ -100,9 +69,9 @@ export function TweakDemo() {
   } as CSSProperties
 
   return (
-    <figure className="note-figure">
-      <div className="note-stage">
-        <Cycler speed={1} bounds={bounds} vars={vars} removeAfter={t.duration + t.stagger * 6 + 120} />
+    <figure className="note-demo">
+      <div className="note-demo-stage">
+        <Cycler name="Theme" speed={1} bounds={bounds} vars={vars} removeAfter={t.duration + t.stagger * 6 + 120} />
       </div>
       <div className="note-tweaks">
         <Scrubber label="Duration" value={t.duration} min={100} max={1200} step={10} format={(v) => `${v}ms`} onChange={set('duration')} />
@@ -115,19 +84,12 @@ export function TweakDemo() {
           value={EASES.findIndex((e) => e.value === t.ease)}
           min={0}
           max={EASES.length - 1}
-          format={(i) => EASES[i].label}
-          onChange={(i) => set('ease')(EASES[i].value)}
+          format={(n) => EASES[n].label}
+          onChange={(n) => set('ease')(EASES[n].value)}
         />
         <div className="note-tweaks-row">
-          <Chips
-            label="Bounds"
-            options={[
-              { label: 'Off', value: 'off' },
-              { label: 'On', value: 'on' },
-            ]}
-            value={bounds ? 'on' : 'off'}
-            onChange={(v) => setBounds(v === 'on')}
-          />
+          <span className="note-tweaks-label">Bounds</span>
+          <Segmented label="Bounds" options={ON_OFF} value={bounds ? 'on' : 'off'} onChange={(v) => setBounds(v === 'on')} />
           <button type="button" className="note-reset" disabled={!changed} onClick={() => setT(DEFAULTS)}>
             Reset
           </button>
@@ -140,35 +102,40 @@ export function TweakDemo() {
   )
 }
 
+/* ---------- Comparisons ---------- */
+
+function useSpeed(initial: number) {
+  const [speed, setSpeed] = useState(initial)
+  return { speed, aside: <Segmented label="Speed" options={SPEEDS} value={speed} onChange={setSpeed} /> }
+}
+
 /** v1 (keyframes) vs final (transitions): click each twice, fast. */
 export function InterruptDemo() {
-  const [speed, setSpeed] = useState(2)
+  const { speed, aside } = useSpeed(2)
   return (
-    <Figure
-      caption="Click each twice, fast."
-      controls={<Chips label="Speed" options={SPEEDS} value={speed} onChange={setSpeed} />}
-    >
-      <div className="note-pair">
-        <Cycler label="Keyframes" variant="keyframes" speed={speed} bounds={false} />
-        <Cycler label="Transitions" speed={speed} bounds={false} />
-      </div>
-    </Figure>
+    <Fig title="Keyframes and Transitions" aside={aside} caption="Click each twice, fast. Only one of them carries on.">
+      <Tiles
+        items={[
+          { label: 'Keyframes', spec: 'Restarts when clicked mid-roll', children: <Cycler name="Keyframes" variant="keyframes" speed={speed} bounds={false} /> },
+          { label: 'Transitions', spec: 'Carries on from where it is', children: <Cycler name="Transitions" speed={speed} bounds={false} /> },
+        ]}
+      />
+    </Fig>
   )
 }
 
 /** v2 (inline-grid) vs final (pinned): the shake. */
 export function ShakeDemo() {
-  const [speed, setSpeed] = useState(4)
+  const { speed, aside } = useSpeed(4)
   return (
-    <Figure
-      caption="Go from System to Light and watch the right edge."
-      controls={<Chips label="Speed" options={SPEEDS} value={speed} onChange={setSpeed} />}
-    >
-      <div className="note-pair">
-        <Cycler label="Grid" variant="grid" speed={speed} bounds />
-        <Cycler label="Pinned" speed={speed} bounds />
-      </div>
-    </Figure>
+    <Fig title="Grid Cell and Pinned Words" aside={aside} caption="Go from System to Light and watch the right edge.">
+      <Tiles
+        items={[
+          { label: 'Grid cell', spec: 'As wide as the widest word', children: <Cycler name="Grid" variant="grid" speed={speed} bounds /> },
+          { label: 'Pinned', spec: 'Every word on the right edge', children: <Cycler name="Pinned" speed={speed} bounds /> },
+        ]}
+      />
+    </Fig>
   )
 }
 
@@ -256,127 +223,131 @@ export function TimelineDemo() {
   const width = widths && widths[0] + (widths[1] - widths[0]) * easeOut(clamp01(t / 300))
 
   return (
-    <figure className="note-figure">
-      <div className="note-stage">
-        <div className="note-timeline">
-          <div className="note-timeline-stage" aria-label={`Dark rolling to System, ${ms}ms in`} role="img">
-            <span className="roll note-timeline-word" style={{ width }}>
-              <span ref={fromRef} className="roll-word" aria-hidden>
-                {[...FROM].map((ch, i) => {
-                  const o = lettersOut(i, t)
-                  return (
-                    <span
-                      key={i}
-                      className="roll-letter"
-                      style={{ transform: `translateY(${-70 * o.move}%)`, opacity: 1 - o.fade, filter: `blur(${2 * o.fade}px)` }}
-                    >
-                      {ch}
-                    </span>
-                  )
-                })}
-              </span>
-              <span ref={toRef} className="roll-word" aria-hidden>
-                {[...TO].map((ch, i) => {
-                  const o = lettersIn(i, t)
-                  return (
-                    <span
-                      key={i}
-                      className="roll-letter"
-                      style={{
-                        transform: `translateY(${70 * (1 - o.move)}%)`,
-                        opacity: o.fade,
-                        filter: `blur(${2 * (1 - o.fade)}px)`,
-                      }}
-                    >
-                      {ch}
-                    </span>
-                  )
-                })}
-              </span>
+    <Fig
+      title="Roll Phases"
+      aside={
+        <>
+          <Key>System arrives</Key>
+          <Key dashed tone="faint">Dark leaves</Key>
+        </>
+      }
+      caption="Every letter's position against time. Dark is gone by 236 ms; System's last letter settles at 390 ms."
+    >
+      <div className="note-timeline">
+        <div className="note-timeline-stage" aria-label={`Dark rolling to System, ${ms}ms in`} role="img">
+          <span className="roll note-timeline-word" style={{ width }}>
+            <span ref={fromRef} className="roll-word" aria-hidden>
+              {[...FROM].map((ch, i) => {
+                const o = lettersOut(i, t)
+                return (
+                  <span
+                    key={i}
+                    className="roll-letter"
+                    style={{ transform: `translateY(${-70 * o.move}%)`, opacity: 1 - o.fade, filter: `blur(${2 * o.fade}px)` }}
+                  >
+                    {ch}
+                  </span>
+                )
+              })}
             </span>
-          </div>
+            <span ref={toRef} className="roll-word" aria-hidden>
+              {[...TO].map((ch, i) => {
+                const o = lettersIn(i, t)
+                return (
+                  <span
+                    key={i}
+                    className="roll-letter"
+                    style={{
+                      transform: `translateY(${70 * (1 - o.move)}%)`,
+                      opacity: o.fade,
+                      filter: `blur(${2 * (1 - o.fade)}px)`,
+                    }}
+                  >
+                    {ch}
+                  </span>
+                )
+              })}
+            </span>
+          </span>
+        </div>
 
-          <div>
-            {/* Drag anywhere on the chart to scrub (the Time row below has the keyboard).
-                A press eases the playhead to the cursor; moving then glues it there. */}
-            <div
-              className="note-chart"
-              aria-hidden
-              data-easing={easing || undefined}
-              data-dragging={dragging || undefined}
-              onPointerDown={(e) => {
-                if (e.button !== 0) return
-                e.currentTarget.setPointerCapture(e.pointerId)
-                setPlaying(false)
-                setDragging(true)
-                setEasing(true)
-                scrubTo(e)
-              }}
-              onPointerMove={(e) => {
-                if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
-                setEasing(false)
-                scrubTo(e)
-              }}
-              onPointerUp={() => setDragging(false)}
-              onPointerCancel={() => setDragging(false)}
-              onLostPointerCapture={() => setDragging(false)}
-            >
-              <svg viewBox="0 -2 400 104" preserveAspectRatio="none">
-                {[0, 100].map((y) => (
-                  <path key={y} className="c-grid" d={`M0 ${y}H400`} />
-                ))}
-                {CURVES.out.map((d, i) => (
-                  <path key={`o${i}`} className="c-out" d={d} />
-                ))}
-                {CURVES.in.map((d, i) => (
-                  <path key={`i${i}`} className="c-in" d={d} />
-                ))}
-              </svg>
-              <span className="note-playhead" style={{ left: `${(t / END) * 100}%` }} />
-            </div>
-            <div className="note-ticks" aria-hidden>
-              {[0, 100, 200, 300, 400].map((v) => (
-                <span key={v}>{v}ms</span>
+        <div>
+          {/* Drag anywhere on the chart to scrub (the Time row below has the keyboard).
+              A press eases the playhead to the cursor; moving then glues it there. */}
+          <div
+            className="note-chart"
+            aria-hidden
+            data-easing={easing || undefined}
+            data-dragging={dragging || undefined}
+            onPointerDown={(e) => {
+              if (e.button !== 0) return
+              e.currentTarget.setPointerCapture(e.pointerId)
+              setPlaying(false)
+              setDragging(true)
+              setEasing(true)
+              scrubTo(e)
+            }}
+            onPointerMove={(e) => {
+              if (!e.currentTarget.hasPointerCapture(e.pointerId)) return
+              setEasing(false)
+              scrubTo(e)
+            }}
+            onPointerUp={() => setDragging(false)}
+            onPointerCancel={() => setDragging(false)}
+            onLostPointerCapture={() => setDragging(false)}
+          >
+            <span className="note-chart-y" data-at="top">done</span>
+            <span className="note-chart-y" data-at="bottom">start</span>
+            <svg viewBox="0 -2 400 104" preserveAspectRatio="none">
+              {[0, 100].map((y) => (
+                <path key={y} className="c-grid" d={`M0 ${y}H400`} />
               ))}
-            </div>
+              {CURVES.out.map((d, i) => (
+                <path key={`o${i}`} className="c-out" d={d} />
+              ))}
+              {CURVES.in.map((d, i) => (
+                <path key={`i${i}`} className="c-in" d={d} />
+              ))}
+            </svg>
+            <span className="note-mark" style={{ left: '75%' }}>
+              <span>300 ms, the width settles</span>
+            </span>
+            <span className="note-playhead" style={{ left: `${(t / END) * 100}%` }} />
           </div>
-
-          <div className="note-legend">
-            <span className="l-in"><i />System arrives, 18ms apart</span>
-            <span className="l-out"><i />Dark leaves, 12ms apart</span>
+          <div className="note-ticks" aria-hidden>
+            {[0, 200, 400].map((v) => (
+              <span key={v}>{v ? `${v} ms` : 0}</span>
+            ))}
           </div>
         </div>
+
+        <div className="note-timeline-controls">
+          <Scrubber
+            label="Time"
+            value={ms}
+            min={0}
+            max={END}
+            format={(v) => `${v}ms`}
+            onChange={(v) => {
+              setPlaying(false)
+              setT(v)
+            }}
+          />
+          <button
+            type="button"
+            className="note-btn note-play"
+            onClick={() => {
+              if (!playing && t >= END) {
+                tRef.current = 0
+                setT(0)
+              }
+              setPlaying((p) => !p)
+            }}
+          >
+            <RollingText text={playing ? 'Pause' : 'Play ¼×'} />
+          </button>
+        </div>
       </div>
-      <div className="note-timeline-controls">
-        <Scrubber
-          label="Time"
-          value={ms}
-          min={0}
-          max={END}
-          format={(v) => `${v}ms`}
-          onChange={(v) => {
-            setPlaying(false)
-            setT(v)
-          }}
-        />
-        <button
-          type="button"
-          className="note-play"
-          onClick={() => {
-            if (!playing && t >= END) {
-              tRef.current = 0
-              setT(0)
-            }
-            setPlaying((p) => !p)
-          }}
-        >
-          <RollingText text={playing ? 'Pause' : 'Play ¼×'} />
-        </button>
-      </div>
-      <figcaption>
-        Drag through the roll. Dark is gone by 236ms; System's last letter settles at 390ms. The width finishes
-        with the first letter, at 300ms.
-      </figcaption>
-    </figure>
+    </Fig>
   )
 }

@@ -1,9 +1,6 @@
-import type { ReactNode } from 'react'
 import { CodeBlock } from '../components/CodeBlock'
-import { InterruptDemo, ShakeDemo, TimelineDemo, TweakDemo } from '../components/NoteDemos'
-
-const C = ({ children }: { children: ReactNode }) => <code className="note-inline">{children}</code>
-
+import { InterruptDemo, RollDemo, ShakeDemo, TimelineDemo } from '../components/NoteDemos'
+import { C, Ext, Footnotes, Ref } from '../components/NoteKit'
 
 const TIMINGS = `.roll {
   --in: 300ms;        /* letters settle; opacity and blur take 80% of it */
@@ -28,7 +25,8 @@ requestAnimationFrame(() =>
 /* everything except the letters and their box */
 .theme-switching *:not(.roll, .roll-letter) { transition: none !important; }`
 
-const PROMPT = `Build a theme switch for a site footer that is a word, not an icon. Each click cycles Light → Dark → System. React and plain CSS, no animation library.
+/** Behind the note's Copy Prompt button: every value on the page, for a coding agent. */
+export const THEME_SWITCHER_PROMPT = `Build a theme switch for a site footer that is a word, not an icon. Each click cycles Light → Dark → System. React and plain CSS, no animation library.
 
 Letters
 - Split each word into inline-block letters, aria-hidden. Name the button like "Theme: Light. Switch to Dark".
@@ -61,58 +59,109 @@ export function ThemeSwitcherNote() {
   return (
     <>
       <p>
-        The theme switch in the footer is a word. Press it and the letters roll up and out, the next word rolls in from
-        below, and the button eases to the new width. Three animations that have to read as one, at any speed and from
-        any point.
+        The theme switch in this site's footer is a word, not an icon. Press it and the letters of the old word roll up
+        and out, the next word rolls in from below, and the button eases to the new width. That's three animations that
+        have to read as one, at any speed and from any point, in plain CSS.
       </p>
-
-      <TweakDemo />
-
-      <h2>Problem</h2>
       <p>
-        The first version used <C>@keyframes</C> and took about <C>520ms</C>. Click twice and the leaving word jumped
-        back to full before it left. The letters wore a heavy <C>3px</C> blur, and the button's colour faded over{' '}
-        <C>150ms</C> while the rest of the page snapped, so it lagged behind its own theme.
+        This page is how I got the letters, the width and the colour to agree, and what went wrong on the way. Its shape
+        is borrowed from Raphael Salaja.
+        <Ref n={1} /> Click the word below, then change any value under it.
       </p>
-      <p>Then, once it was fast, the text shook while the button resized: it clipped, then jumped into place.</p>
+
+      <RollDemo />
 
       <h2>Anatomy</h2>
       <p>
-        Each word is split into inline-block letters. A letter starts <C>70%</C> below its line, at opacity 0 behind a{' '}
-        <C>2px</C> blur, and settles in <C>300ms</C>, <C>18ms</C> after the one before it. Opacity and blur finish
-        early, at <C>240ms</C>, so a letter is sharp before it lands.
+        It's three parts, each with one job: the letters, the word they belong to and the box that holds the words.
       </p>
       <p>
-        Leaving is two thirds of arriving: <C>200ms</C>, <C>12ms</C> apart. The old word should be out of the way before
-        the new one asks to be read.
+        Each word is split into inline-block letters, hidden from screen readers. The button itself is named “Theme:
+        Light. Switch to Dark”, so it reads as one control and not five letters.
       </p>
-      <CodeBlock title="index.css" code={TIMINGS} />
-      <p>Every timing is a variable, so the playground above drives the real component, not a copy.</p>
+      <p>
+        The box is <C>height: 1lh</C> with <C>overflow: hidden</C>, so a letter more than a line away is out of sight.
+        It uses <C>content-box</C> sizing with a <C>2px</C> gutter, padding cancelled by a negative margin, so a blurred
+        letter isn't shaved at the edge.
+      </p>
 
-      <h2>Frame by frame</h2>
+      <h2>Letters In, Letters Out</h2>
       <p>
-        One curve, <C>cubic-bezier(0.23, 1, 0.32, 1)</C>, for letters and width alike. It starts fast, so the press
-        answers at once, and spends its time arriving.
+        A letter starts <C>70%</C> below its line, at opacity 0 behind a <C>2px</C> blur, and settles over{' '}
+        <C>300ms</C>, <C>18ms</C> after the one before it. Opacity and blur finish early, at <C>240ms</C>, so a letter
+        is sharp before it lands.
+      </p>
+      <p>
+        Leaving is two thirds of arriving: <C>200ms</C>, <C>12ms</C> apart. The old word should be out of the way
+        before the new one asks to be read, and a shorter exit gets it there.
+      </p>
+      <p>
+        One curve, <C>cubic-bezier(0.23, 1, 0.32, 1)</C>, drives the letters and the width alike. It starts fast, so
+        the press answers at once, and spends the rest of its time arriving. Freezing the roll at a chosen millisecond,
+        below, is an idea I took from Ayomidé Daniel.
+        <Ref n={2} />
       </p>
       <TimelineDemo />
-
-      <h2>Interruptible</h2>
+      <CodeBlock title="index.css" code={TIMINGS} />
       <p>
-        People click again before the roll ends. With <C>@keyframes</C>, changing the animation restarts it, so an
-        interrupted word flashes back to full before leaving. Transitions carry on from wherever the letters are.
+        Every timing is a variable,
+        <Ref n={3} /> so the rows under the demo at the top drive the real component, not a copy. They're modelled on
+        Fluid Functionalism's slider.
+        <Ref n={4} />
+      </p>
+
+      <h2>The Numbers</h2>
+      <div className="note-table-wrap">
+        <table className="note-table">
+          <thead>
+            <tr>
+              <th>Part</th>
+              <th>Duration</th>
+              <th>Fade</th>
+              <th>Stagger</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Letters in</td><td>300 ms</td><td>240 ms</td><td>18 ms</td></tr>
+            <tr><td>Letters out</td><td>200 ms</td><td>160 ms</td><td>12 ms</td></tr>
+            <tr><td>Width</td><td>300 ms</td><td>–</td><td>–</td></tr>
+            <tr><td>Colour</td><td>1 frame</td><td>–</td><td>–</td></tr>
+            <tr><td>Reduced motion</td><td>–</td><td>150 ms</td><td>0 ms</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        Letters travel <C>70%</C> of a line and blur by <C>2px</C>, and everything that moves uses the same curve.
+      </p>
+
+      <h2>How I Got Here</h2>
+      <p>
+        The first version used <C>@keyframes</C> and took about <C>520ms</C>. It looked right on one click and fell
+        apart on the second.
+      </p>
+
+      <h3>Keyframes</h3>
+      <p>
+        People click again before the roll ends. With <C>@keyframes</C>, changing the animation restarts it, so a word
+        interrupted on its way out flashed back to full before leaving. An interface should let you change your mind
+        while something is still moving,
+        <Ref n={5} /> and this one didn't.
       </p>
       <p>
-        So nothing is replayed. The current word stays mounted and flips a <C>data-out</C> attribute; the next word is
-        added beside it and enters through <C>@starting-style</C>.
+        Transitions carry on from wherever the letters are, so nothing is replayed. The current word stays mounted and
+        flips a <C>data-out</C> attribute; the next word is added beside it and enters through{' '}
+        <C>@starting-style</C>.
+        <Ref n={6} />
       </p>
       <CodeBlock title="RollingText.tsx" code={KEEP_MOUNTED} />
       <InterruptDemo />
 
-      <h2>Pin the words</h2>
+      <h3>The Shake</h3>
+      <p>Once it was fast, the text shook while the button resized: it clipped, then jumped into place.</p>
       <p>
-        The shake came from layout. The words sat in one inline-grid cell, and the column stays as wide as the widest
-        word on screen. As the box narrowed past it, the words aligned to the column's edge, outside the box, so they
-        clipped, then jumped when the old word was removed.
+        The words sat in one inline-grid cell, and a grid column stays as wide as the widest word on screen. As the box
+        narrowed past it, the words aligned to the column's edge, outside the box, so they clipped, then jumped when the
+        old word was removed.
       </p>
       <p>
         Now every word is absolutely positioned against the right edge, the one edge that never moves, and the box's
@@ -120,59 +169,53 @@ export function ThemeSwitcherNote() {
       </p>
       <ShakeDemo />
 
-      <h2>One frame for colour</h2>
+      <h3>Colour in One Frame</h3>
       <p>
-        The page and the button should change theme together. For two frames every other transition is off, so colour
-        flips at once and only the letters move.
+        The button's colour faded over <C>150ms</C> while the rest of the page snapped, so it lagged behind its own
+        theme. Now every other transition is off for two frames, so colour flips at once and only the letters move. The
+        blur came down from <C>3px</C> to <C>2px</C> in the same pass.
       </p>
       <CodeBlock title="ThemeToggle.tsx" code={ONE_FRAME} />
 
-      <h2>Details</h2>
-      <ul>
-        <li>
-          The box is <C>height: 1lh</C> with <C>content-box</C> sizing and a <C>2px</C> gutter, so blurred letters
-          aren't shaved at the edges.
-        </li>
-        <li>
-          With reduced motion, letters only fade over <C>150ms</C> and the width jumps.
-        </li>
-        <li>
-          The button is named “Theme: Light. Switch to Dark”; the letters are <C>aria-hidden</C>.
-        </li>
-        <li>The Copy button below uses the same component.</li>
-      </ul>
+      <h2>When to Use It</h2>
+      <p>
+        I'd use it for a short label that cycles through a few states, where seeing the change is the point: a theme, a
+        status, Play turning into Pause (the button in Figure 1 uses the same component). I'd skip it for anything
+        longer than a word or two, for text someone is reading while it changes, and for numbers, where rolling letters
+        add motion without adding meaning.
+      </p>
+      <p>
+        With reduced motion, the letters only fade, over <C>150ms</C> with no stagger, and the width jumps.
+      </p>
 
-      <h2>Use it</h2>
-      <p>To build this in your own product, give this prompt to your coding agent. It has every value from this page.</p>
-      <CodeBlock title="Prompt" code={PROMPT} lang="prompt" />
-
-      <h2>References</h2>
-      <ul>
-        <li>
-          <a href="https://developer.apple.com/videos/play/wwdc2018/803/" target="_blank" rel="noreferrer">
-            Designing Fluid Interfaces
-          </a>
-          , Apple, WWDC 2018: why motion should be interruptible.
-        </li>
-        <li>
-          <a href="https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style" target="_blank" rel="noreferrer">
-            @starting-style
-          </a>
-          , MDN: entry transitions without keyframes.
-        </li>
-        <li>
-          <a href="https://www.fluidfunctionalism.com/docs/slider" target="_blank" rel="noreferrer">
-            Slider
-          </a>
-          , Fluid Functionalism: the scrubber rows in the playground.
-        </li>
-        <li>
-          <a href="https://www.dahnizzy.com/card-to-dialog" target="_blank" rel="noreferrer">
-            Card to dialog
-          </a>
-          , Ayomidé Daniel: the shape of this write-up.
-        </li>
-      </ul>
+      <Footnotes>
+        {[
+          <>
+            <Ext href="https://www.raphaelsalaja.com/work/glass-menu">The Glass Menu</Ext>, Raphael Salaja: the shape of
+            this page.
+          </>,
+          <>
+            <Ext href="https://www.dahnizzy.com/card-to-dialog">Card to dialog</Ext>, Ayomidé Daniel: the frame-by-frame
+            timeline.
+          </>,
+          <>
+            Every value is a variable at the top of <C>.roll</C> in <C>apps/web/src/index.css</C>.
+          </>,
+          <>
+            <Ext href="https://www.fluidfunctionalism.com/docs/slider">Slider</Ext>, Fluid Functionalism.
+          </>,
+          <>
+            <Ext href="https://developer.apple.com/videos/play/wwdc2018/803/">Designing Fluid Interfaces</Ext>, Apple,
+            WWDC 2018.
+          </>,
+          <>
+            <Ext href="https://developer.mozilla.org/en-US/docs/Web/CSS/@starting-style">
+              <C>@starting-style</C>
+            </Ext>
+            , MDN.
+          </>,
+        ]}
+      </Footnotes>
     </>
   )
 }

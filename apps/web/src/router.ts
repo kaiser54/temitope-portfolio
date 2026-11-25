@@ -1,26 +1,54 @@
 import { useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
+import { morphNote } from './noteMorph'
 import { NOT_FOUND, parseRoute, pathFor, routeMeta, type Route } from './seo'
 
 /** Tiny pathname router: pushState navigation + back/forward, no library needed for a few routes. */
 const listeners = new Set<() => void>()
+let lastPath: string | null = null
+
+/** Re-render subscribers now, so a view transition can snapshot the new page. */
+const notify = () => flushSync(() => listeners.forEach((l) => l()))
+
+/**
+ * Every route change goes through here. Opening or leaving a note morphs the card into the page and back
+ * (noteMorph.ts); note → note starts at the top; anything else just re-renders.
+ */
+function changeRoute(from: string, to: string, commit: () => void) {
+  const a = parseRoute(from)?.note
+  const b = parseRoute(to)?.note
+  if (!a !== !b) return morphNote({ opening: b, closing: a, commit })
+  commit()
+  if (a && b) window.scrollTo(0, 0)
+}
+
+// Back / forward: the URL has already changed, so committing is just re-rendering.
+function onPopState() {
+  const from = lastPath ?? window.location.pathname
+  lastPath = window.location.pathname
+  changeRoute(from, lastPath, notify)
+}
 
 function subscribe(cb: () => void) {
+  if (lastPath === null) {
+    lastPath = window.location.pathname
+    window.addEventListener('popstate', onPopState)
+  }
   listeners.add(cb)
-  window.addEventListener('popstate', cb)
   return () => {
     listeners.delete(cb)
-    window.removeEventListener('popstate', cb)
   }
 }
 
 export function navigate(route: Route, { replace = false } = {}) {
   const path = pathFor(route)
-  if (path === window.location.pathname) return
-  const pageChange = !!route.note || !!parseRoute(window.location.pathname)?.note
-  window.history[replace ? 'replaceState' : 'pushState'](null, '', path)
-  listeners.forEach((l) => l())
-  // opening or leaving a note is a new page: start at the top
-  if (pageChange) window.scrollTo(0, 0)
+  const from = window.location.pathname
+  if (path === from) return
+  changeRoute(from, path, () => {
+    window.history[replace ? 'replaceState' : 'pushState'](null, '', path)
+    lastPath = path
+    notify()
+  })
 }
 
 /** Path rendered at build time (scripts/prerender.ts); the browser always reads the real URL. */

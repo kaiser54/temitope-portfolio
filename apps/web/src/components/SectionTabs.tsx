@@ -11,6 +11,7 @@ import { Notes } from './Notes'
 import { Projects } from './Projects'
 import { RubberIndicator } from './RubberIndicator'
 import { useSwipeTabs } from './useSwipeTabs'
+import { useEnterClass } from '../noteMorph'
 
 type SectionId = Section
 export type { NoteFilter }
@@ -96,6 +97,8 @@ const spaClick = (e: MouseEvent<HTMLAnchorElement>) => {
 
 export function SectionTabs({ index }: { index: number }) {
   const route = useRoute()
+  // Coming back from a note by morph, the card lands in place: skip the fade-up.
+  const enter = useEnterClass()
   const { section, filter } = route
   const [menuOpen, setMenuOpen] = useState(false)
   const menuActions = useRef<NonNullable<ComponentProps<typeof Select.Root>['actionsRef']>['current']>(null)
@@ -198,7 +201,7 @@ export function SectionTabs({ index }: { index: number }) {
     <Tabs.Root
       value={section}
       onValueChange={(v) => selectSection(v as SectionId)}
-      className="enter flex flex-col gap-4"
+      className={`${enter} flex flex-col gap-4`}
       style={{ '--i': index } as CSSProperties}
     >
       <Tabs.List

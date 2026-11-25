@@ -196,25 +196,29 @@ export type Note = {
   date?: string
   summary?: string
   href?: string
+  /** Kept in the source but left off the site: no list row, page, route, sitemap entry or count */
+  hidden?: boolean
 }
 
 /** Writing and build logs. Notes without a date show as "Soon". */
-export const notes: Note[] = [
+const allNotes: Note[] = [
   {
-    title: 'Highlight, then ask AI',
+    title: 'Highlight, Then Ask AI',
     slug: 'ask-ai',
     tags: ['build-log'],
+    hidden: true,
     // draft: add a date when it's written
-    summary: 'The selection popover in Ship’s letter editor: positioning, view changes and streaming the reply in.',
+    summary: 'The selection popover in Ship’s letter editor, rebuilt with its own values.',
   },
   {
-    title: 'Rolling a theme switcher, letter by letter',
+    title: 'Rolling a Theme Switcher, Letter by Letter',
     slug: 'theme-switcher',
     tags: ['build-log'],
     date: '2026-11-09',
-    summary: 'Why the text shook while the button resized, and pinning words to an edge to fix it.',
+    summary: 'The footer’s theme switch as a word, rolled letter by letter in plain CSS.',
   },
 ]
+export const notes = allNotes.filter((n) => !n.hidden)
 
 export type Exploration = {
   title: string
